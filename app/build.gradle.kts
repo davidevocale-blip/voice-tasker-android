@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.voicetasker.app"
+    namespace = "com.gentlefit.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.voicetasker.app"
+        applicationId = "com.gentlefit.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -53,6 +53,8 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons.extended)
     implementation(libs.compose.ui.text.google.fonts)
+    implementation(libs.compose.animation)
+    implementation(libs.compose.foundation)
     debugImplementation(libs.compose.ui.tooling)
 
     // Activity & Lifecycle
@@ -78,6 +80,12 @@ dependencies {
     implementation(libs.work.runtime.ktx)
     implementation(libs.hilt.work)
     ksp(libs.hilt.work.compiler)
+
+    // Coil (image loading)
+    implementation(libs.coil.compose)
+
+    // DataStore
+    implementation(libs.datastore.preferences)
 
     // Core
     implementation(libs.core.ktx)

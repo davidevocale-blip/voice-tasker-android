@@ -1,68 +1,68 @@
-# 🎙 VoiceTasker
+# 🌸 GentleFit – Il benessere senza sforzo
 
-**VoiceTasker** è un'app Android nativa per registrare, trascrivere e organizzare note vocali legate ai tuoi impegni quotidiani.
+Un'app Android nativa pensata per donne 30–60 che vogliono sentirsi meglio, dimagrire e migliorare la salute senza stravolgere la vita.
 
----
+> "Ti aiuto a stare meglio senza obbligarti a diventare una sportiva"
 
-## ✨ Funzionalità
+## 🎯 Concept
 
-- 🎤 **Registrazione vocale** con visualizzatore waveform in tempo reale
-- 📝 **Trascrizione automatica** tramite speech-to-text on-device (italiano)
-- 🏷️ **Categorizzazione intelligente** — suggerimento automatico della categoria basato sul contenuto
-- 📅 **Calendario integrato** — visualizza i tuoi impegni in un calendario mensile
-- ⏰ **Promemoria** — reminder configurabili (1 giorno, 12 ore, 2 ore prima)
-- ✏️ **Modifica & Elimina** — gestisci completamente le tue note e categorie
-- 💎 **Modello Freemium** — piano gratuito con opzioni Premium
+L'app trasforma piccoli gesti quotidiani in risultati visibili con un approccio:
+- ⏱️ **5–10 minuti al giorno**
+- 🧘 **Esercizi dolci** (stretching, mobilità, camminata, yoga)
+- 🥗 **Suggerimenti alimentari semplici**
+- 💕 **Motivazione emotiva** (mai tecnica, mai giudicante)
 
-## 🏗 Architettura
+## 🔑 Funzionalità
 
-- **Linguaggio**: Kotlin 2.0+
-- **UI**: Jetpack Compose + Material Design 3
-- **Pattern**: MVVM + Clean Architecture
+### 🆓 Gratuite
+- **🌿 Routine giornaliera "zero sforzo"**: 1 mini allenamento + 1 micro-consiglio alimentare + 1 obiettivo semplice
+- **💬 Coach motivazionale "Marta"**: chat empatica che incoraggia senza giudicare
+- **📊 Progressi "soft"**: focus su emozioni (energia, sonno, umore), NO numeri ossessivi
+- **🎯 Micro-obiettivi**: piccoli gesti fattibili con streak tracking
+- **📰 News benessere**: articoli su alimentazione, movimento, mente
+- **👯 Invita un'amica**: condividi il percorso
+
+### 💎 Premium (€5–10/mese)
+- Programmi personalizzati (menopausa, gonfiore, schiena, postura)
+- Piani alimentari soft
+- Video extra (yoga dolce, relax guidato)
+- Reminder intelligenti
+- Community privata
+
+## 🛠️ Tech Stack
+
+- **Linguaggio**: Kotlin
+- **UI**: Jetpack Compose + Material3
+- **Architettura**: Clean Architecture (Data → Domain → UI)
+- **DI**: Hilt/Dagger
 - **Database**: Room
-- **DI**: Hilt
+- **Preferences**: DataStore
 - **Background**: WorkManager
-- **Navigation**: Compose Navigation
-
-## 📱 Requisiti
-
-- Android 8.0 (API 26) o superiore
-- Android Studio Hedgehog o superiore
-- JDK 17
-
-## 🚀 Setup
-
-1. Clona il repository:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/voice-tasker-android.git
-   ```
-2. Apri il progetto in **Android Studio**
-3. Sincronizza Gradle e compila
-4. Esegui su un dispositivo o emulatore
-
-## 💰 Piani di Abbonamento
-
-| Piano | Prezzo | Caratteristiche |
-|---|---|---|
-| **Free** | €0 | 5 note/mese, 1 min max, 3 categorie |
-| **Premium Mensile** | €3,99/mese | Tutto illimitato |
-| **Premium Annuale** | €29,99/anno | Risparmio 37% |
-| **Lifetime** | €49,99 | Una tantum |
+- **Navigation**: Navigation Compose
+- **Fonts**: Google Fonts (Nunito + Poppins)
 
 ## 📁 Struttura Progetto
 
 ```
-app/src/main/java/com/voicetasker/app/
-├── data/           # Room DB, Repository Impl, Recorder
+com.gentlefit.app/
+├── data/           # Room entities, DAOs, repositories, DataStore
 ├── di/             # Hilt modules
-├── domain/         # Models, Interfaces, Use Cases
-├── navigation/     # Compose Navigation
-├── ui/             # Theme, Components, Screens
-├── worker/         # WorkManager Reminder
-├── MainActivity.kt
-└── VoiceTaskerApp.kt
+├── domain/         # Models, repository interfaces, use cases
+├── navigation/     # NavGraph
+├── ui/
+│   ├── components/ # UI reusabili (RoutineCard, CoachBubble, etc.)
+│   ├── screen/     # Schermate (Home, Coach, Progress, Goals, News, etc.)
+│   └── theme/      # Design system (colori, tipografia, forme)
+└── worker/         # WorkManager workers
 ```
 
-## 📄 Licenza
+## 🎨 Design
 
-Copyright © 2026 VoiceTasker. Tutti i diritti riservati.
+- **Palette**: Rosa gentile, Verde salvia, Crema caldo
+- **Font**: Nunito (headings) + Poppins (body)
+- **Stile**: Morbido, arrotondato, con gradients delicati e emoji
+- **Tono**: Amichevole, empatico, come un'amica
+
+## 📄 License
+
+MIT
