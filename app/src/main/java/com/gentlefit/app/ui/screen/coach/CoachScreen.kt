@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -67,7 +68,8 @@ fun CoachScreen(viewModel: CoachViewModel = hiltViewModel()) {
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = GentlePink50),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                        border = BorderStroke(
+                            width = 1.dp,
                             brush = Brush.horizontalGradient(listOf(GentlePink50, GentlePink40))
                         )
                     ) { Text(reply, style = MaterialTheme.typography.bodyMedium) }

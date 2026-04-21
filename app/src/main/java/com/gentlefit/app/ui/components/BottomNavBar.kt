@@ -21,7 +21,7 @@ import androidx.compose.material.icons.rounded.EmojiEmotions
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Newspaper
-import androidx.compose.material.icons.rounded.ShowChart
+import androidx.compose.material.icons.automirrored.rounded.ShowChart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -53,7 +53,7 @@ data class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem("home", "Home", Icons.Rounded.Home),
     BottomNavItem("coach", "Coach", Icons.Rounded.EmojiEmotions),
-    BottomNavItem("progress", "Progressi", Icons.Rounded.ShowChart),
+    BottomNavItem("progress", "Progressi", Icons.AutoMirrored.Rounded.ShowChart),
     BottomNavItem("goals", "Obiettivi", Icons.Rounded.FitnessCenter),
     BottomNavItem("news", "News", Icons.Rounded.Newspaper),
 )

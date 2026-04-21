@@ -10,7 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -71,7 +71,7 @@ private fun NewsDetailView(article: com.gentlefit.app.domain.model.NewsArticle, 
             .verticalScroll(rememberScrollState()).statusBarsPadding()
     ) {
         IconButton(onClick = onBack, modifier = Modifier.padding(8.dp)) {
-            Icon(Icons.Rounded.ArrowBack, "Indietro")
+            Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Indietro")
         }
         Column(Modifier.padding(horizontal = 20.dp)) {
             Text("${article.category.emoji} ${article.category.displayName}",
