@@ -1,7 +1,6 @@
 package com.gentlefit.app.ui.screen.home
 
 import androidx.compose.animation.*
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,19 +17,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.gentlefit.app.R
 import com.gentlefit.app.ui.components.*
 import com.gentlefit.app.ui.theme.*
 import java.time.LocalTime
 
 @Composable
-fun HomeScreen(onNavigateToProfile: () -> Unit, viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    onNavigateToProfile: () -> Unit,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    viewModel: HomeViewModel = hiltViewModel()
+) {
     val state by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
     val hour = LocalTime.now().hour
@@ -39,6 +39,7 @@ fun HomeScreen(onNavigateToProfile: () -> Unit, viewModel: HomeViewModel = hiltV
     Box(Modifier.fillMaxSize()) {
         Column(
             Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+                .padding(contentPadding)
                 .verticalScroll(scrollState).padding(horizontal = 24.dp).statusBarsPadding()
         ) {
             Spacer(Modifier.height(16.dp))
@@ -74,43 +75,29 @@ fun HomeScreen(onNavigateToProfile: () -> Unit, viewModel: HomeViewModel = hiltV
 
             Spacer(Modifier.height(16.dp))
 
-            // Emotional nature image
-            Box(Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(20.dp))) {
-                Image(
-                    painterResource(R.drawable.nature_wellness), "Natura e benessere",
-                    Modifier.fillMaxSize(), contentScale = ContentScale.Crop
-                )
-                // Gradient overlay for text readability
-                Box(Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.4f)))
-                ))
-                Text("✨ Ogni giorno è un nuovo inizio", Modifier.align(Alignment.BottomStart).padding(16.dp),
-                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-                    color = Color.White)
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Quick Stats + Weekly Ring
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                WeeklyRing(progress = state.weeklyCompletion, size = 90.dp)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    QuickStatRow("⚡", "Energia", "${String.format("%.1f", state.averageEnergy)}/5")
-                    QuickStatRow("😴", "Sonno", "${String.format("%.1f", state.averageSleep)}/5")
-                    QuickStatRow("🔥", "Streak", "${state.streakDays} gg")
+            // Quick Stats + Weekly Ring (dark card)
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = Plum20)) {
+                Row(Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    WeeklyRing(progress = state.weeklyCompletion, size = 90.dp)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        QuickStatRow("⚡", "Energia", "${String.format("%.1f", state.averageEnergy)}/5")
+                        QuickStatRow("😴", "Sonno", "${String.format("%.1f", state.averageSleep)}/5")
+                        QuickStatRow("🔥", "Streak", "${state.streakDays} gg")
+                    }
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            // Mood Trend
+            // Mood Trend (dark card)
             if (state.recentMoods.isNotEmpty()) {
                 Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Mauve90)) {
-                    Column(Modifier.padding(14.dp)) {
+                    colors = CardDefaults.cardColors(containerColor = Plum30)) {
+                    Column(Modifier.padding(18.dp)) {
                         Text("Umore ultimi giorni", style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                        Spacer(Modifier.height(6.dp))
+                            fontWeight = FontWeight.SemiBold, color = Plum90)
+                        Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             state.recentMoods.takeLast(7).forEach { mood ->
                                 val emoji = when (mood.uppercase()) {
@@ -144,20 +131,20 @@ fun HomeScreen(onNavigateToProfile: () -> Unit, viewModel: HomeViewModel = hiltV
                 RoutineCard(emoji = "🎯", title = "Obiettivo del giorno", description = routine.dailyGoal.text,
                     isCompleted = routine.isGoalCompleted, onAction = { viewModel.completeGoal() })
             } else if (!state.isLoading) {
-                // Motivational daily phrase instead of "routine arriving"
-                Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                        .background(Brush.horizontalGradient(listOf(Plum90, SageGreen90)))
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(state.quote, style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface, lineHeight = 24.sp,
-                        fontWeight = FontWeight.Medium)
+                // Motivational daily phrase (dark card)
+                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Plum20)) {
+                    Column(Modifier.padding(24.dp)) {
+                        Text("✨", fontSize = 28.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Text(state.quote, style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White, lineHeight = 24.sp,
+                            fontWeight = FontWeight.Medium)
+                    }
                 }
             }
 
-            Spacer(Modifier.height(80.dp))
+            Spacer(Modifier.height(16.dp))
         }
 
         // Celebration overlay
@@ -172,9 +159,8 @@ private fun QuickStatRow(emoji: String, label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(emoji, fontSize = 16.sp)
         Spacer(Modifier.width(6.dp))
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = Plum70)
         Spacer(Modifier.width(6.dp))
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Color.White)
     }
 }

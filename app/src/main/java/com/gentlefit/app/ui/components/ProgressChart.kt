@@ -16,10 +16,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gentlefit.app.domain.model.ProgressEntry
+import com.gentlefit.app.ui.theme.Plum20
 import com.gentlefit.app.ui.theme.Plum30
+import com.gentlefit.app.ui.theme.Plum40
+import com.gentlefit.app.ui.theme.Plum70
+import com.gentlefit.app.ui.theme.Plum90
 import com.gentlefit.app.ui.theme.SageGreen40
 import com.gentlefit.app.ui.theme.SageGreen50
 import com.gentlefit.app.ui.theme.Lavender40
+import com.gentlefit.app.ui.theme.Lavender60
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -30,11 +35,11 @@ fun ProgressChart(entries: List<ProgressEntry>, modifier: Modifier = Modifier) {
         Box(
             modifier = modifier.fillMaxWidth().height(160.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                .background(Plum20),
             contentAlignment = Alignment.Center
         ) {
             Text("📊 I tuoi progressi appariranno qui", style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface)
+                color = Plum70)
         }
         return
     }
@@ -46,10 +51,10 @@ fun ProgressChart(entries: List<ProgressEntry>, modifier: Modifier = Modifier) {
 
     Column(
         modifier = modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface).padding(16.dp)
+            .background(Plum20).padding(18.dp)
     ) {
         Text("📅 La tua settimana", style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            fontWeight = FontWeight.SemiBold, color = Color.White)
         Spacer(Modifier.height(16.dp))
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -66,11 +71,11 @@ fun ProgressChart(entries: List<ProgressEntry>, modifier: Modifier = Modifier) {
                     // Day label
                     Text(dayName, style = MaterialTheme.typography.labelSmall,
                         fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isToday) Plum30 else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isToday) Color.White else Plum70,
                         fontSize = 10.sp)
                     Text("${day.dayOfMonth}", style = MaterialTheme.typography.labelSmall,
                         fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isToday) Plum30 else MaterialTheme.colorScheme.onSurface,
+                        color = if (isToday) Color.White else Plum70,
                         fontSize = 11.sp)
                     Spacer(Modifier.height(6.dp))
 
@@ -85,24 +90,25 @@ fun ProgressChart(entries: List<ProgressEntry>, modifier: Modifier = Modifier) {
                                 // Sleep bar
                                 Box(Modifier.width(12.dp).fillMaxHeight(entry.sleepQuality / 5f)
                                     .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                    .background(Brush.verticalGradient(listOf(Lavender40.copy(0.6f), Lavender40))))
+                                    .background(Brush.verticalGradient(listOf(Lavender40, Lavender60))))
                             }
                         } else {
                             // Empty placeholder
                             Box(Modifier.width(28.dp).height(4.dp).clip(RoundedCornerShape(2.dp))
-                                .background(MaterialTheme.colorScheme.outlineVariant.copy(0.3f)))
+                                .background(Plum40.copy(0.3f)))
                         }
                     }
 
                     Spacer(Modifier.height(4.dp))
 
                     // Mood emoji
-                    Text(entry?.mood?.emoji ?: "·", fontSize = 14.sp, textAlign = TextAlign.Center)
+                    Text(entry?.mood?.emoji ?: "·", fontSize = 14.sp, textAlign = TextAlign.Center,
+                        color = if (entry != null) Color.Unspecified else Plum40)
                 }
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(14.dp))
 
         // Legend
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -118,6 +124,6 @@ private fun LegendItem(color: Color, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(color))
         Spacer(Modifier.width(4.dp))
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = Plum70)
     }
 }

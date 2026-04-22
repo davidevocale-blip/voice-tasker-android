@@ -38,11 +38,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.gentlefit.app.ui.theme.GentlePink50
-import com.gentlefit.app.ui.theme.GentlePink80
-import com.gentlefit.app.ui.theme.GradientPinkEnd
-import com.gentlefit.app.ui.theme.GradientPinkStart
+import com.gentlefit.app.ui.theme.Plum20
+import com.gentlefit.app.ui.theme.Plum30
+import com.gentlefit.app.ui.theme.Plum40
+import com.gentlefit.app.ui.theme.Plum70
+import com.gentlefit.app.ui.theme.SageGreen20
 import com.gentlefit.app.ui.theme.SageGreen50
+import com.gentlefit.app.ui.theme.SageGreen70
 import com.gentlefit.app.ui.theme.SuccessGreen
 
 @Composable
@@ -59,10 +61,7 @@ fun RoutineCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isCompleted)
-                SageGreen50.copy(alpha = 0.15f)
-            else
-                MaterialTheme.colorScheme.surface
+            containerColor = if (isCompleted) SageGreen20 else Plum20
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isCompleted) 0.dp else 4.dp)
     ) {
@@ -70,7 +69,7 @@ fun RoutineCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(enabled = !isCompleted) { onAction() }
-                .padding(16.dp),
+                .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Emoji circle
@@ -79,8 +78,8 @@ fun RoutineCard(
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isCompleted) SuccessGreen.copy(alpha = 0.2f)
-                        else GentlePink50.copy(alpha = 0.15f)
+                        if (isCompleted) SuccessGreen.copy(alpha = 0.3f)
+                        else Plum40.copy(alpha = 0.3f)
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -98,24 +97,21 @@ fun RoutineCard(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isCompleted)
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    else
-                        MaterialTheme.colorScheme.onSurface
+                    color = if (isCompleted) SageGreen70 else Color.White
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isCompleted) SageGreen50 else Plum70,
                     maxLines = 2
                 )
                 if (duration != null && !isCompleted) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "⏱️ $duration",
                         style = MaterialTheme.typography.labelSmall,
-                        color = GentlePink50
+                        color = Plum70
                     )
                 }
             }
@@ -129,7 +125,7 @@ fun RoutineCard(
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(
-                            Brush.linearGradient(listOf(GentlePink50, GentlePink80))
+                            Brush.linearGradient(listOf(Plum40, Plum30))
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -160,50 +156,49 @@ fun DailyProgressBar(
 ) {
     val progress = if (totalCount > 0) completedCount.toFloat() / totalCount else 0f
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                Brush.linearGradient(listOf(GradientPinkStart, GradientPinkEnd))
-            )
-            .padding(16.dp)
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Plum30)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Progresso di oggi",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
+        Column(Modifier.padding(18.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Progresso di oggi",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+                Text(
+                    text = "$completedCount/$totalCount completati",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Plum70
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = if (completedCount == totalCount) SuccessGreen else Plum40,
+                trackColor = Color.White.copy(alpha = 0.2f),
+                strokeCap = StrokeCap.Round
             )
-            Text(
-                text = "$completedCount/$totalCount completati",
-                style = MaterialTheme.typography.labelMedium,
-                color = GentlePink50
-            )
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp)),
-            color = if (completedCount == totalCount) SuccessGreen else GentlePink50,
-            trackColor = Color.White.copy(alpha = 0.5f),
-            strokeCap = StrokeCap.Round
-        )
-        if (completedCount == totalCount) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "🎉 Fantastico! Hai completato tutto oggi!",
-                style = MaterialTheme.typography.bodySmall,
-                color = SuccessGreen,
-                fontWeight = FontWeight.Medium
-            )
+            if (completedCount == totalCount) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "🎉 Fantastico! Hai completato tutto oggi!",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SuccessGreen,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }

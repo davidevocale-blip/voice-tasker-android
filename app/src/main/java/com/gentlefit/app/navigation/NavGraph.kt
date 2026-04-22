@@ -1,6 +1,8 @@
 package com.gentlefit.app.navigation
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -27,7 +29,11 @@ object Routes {
 }
 
 @Composable
-fun GentleFitNavGraph(navController: NavHostController, startDestination: String) {
+fun GentleFitNavGraph(
+    navController: NavHostController,
+    startDestination: String,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
+) {
     NavHost(navController = navController, startDestination = startDestination) {
 
         composable(Routes.ONBOARDING) {
@@ -37,17 +43,17 @@ fun GentleFitNavGraph(navController: NavHostController, startDestination: String
         }
 
         composable(Routes.HOME) {
-            HomeScreen(onNavigateToProfile = { navController.navigate(Routes.PROFILE) })
+            HomeScreen(onNavigateToProfile = { navController.navigate(Routes.PROFILE) }, contentPadding = contentPadding)
         }
 
-        composable(Routes.COACH) { CoachScreen() }
+        composable(Routes.COACH) { CoachScreen(contentPadding = contentPadding) }
 
-        composable(Routes.PROGRESS) { ProgressScreen() }
+        composable(Routes.PROGRESS) { ProgressScreen(contentPadding = contentPadding) }
 
-        composable(Routes.GOALS) { GoalsScreen() }
+        composable(Routes.GOALS) { GoalsScreen(contentPadding = contentPadding) }
 
         composable(Routes.NEWS) {
-            NewsScreen(onNavigateToAdmin = { navController.navigate(Routes.NEWS_ADMIN) })
+            NewsScreen(onNavigateToAdmin = { navController.navigate(Routes.NEWS_ADMIN) }, contentPadding = contentPadding)
         }
 
         composable(Routes.NEWS_ADMIN) {

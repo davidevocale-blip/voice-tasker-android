@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,7 +25,11 @@ import com.gentlefit.app.ui.components.NewsCard
 import com.gentlefit.app.ui.theme.*
 
 @Composable
-fun NewsScreen(onNavigateToAdmin: () -> Unit = {}, viewModel: NewsViewModel = hiltViewModel()) {
+fun NewsScreen(
+    onNavigateToAdmin: () -> Unit = {},
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    viewModel: NewsViewModel = hiltViewModel()
+) {
     val articles by viewModel.news.collectAsState()
     val selectedCat by viewModel.selectedCategory.collectAsState()
     val selectedArticle by viewModel.selectedArticle.collectAsState()
@@ -36,13 +41,15 @@ fun NewsScreen(onNavigateToAdmin: () -> Unit = {}, viewModel: NewsViewModel = hi
 
     LazyColumn(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+            .padding(contentPadding)
             .padding(horizontal = 24.dp).statusBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("📰 News & Benessere", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                Text("📰 News & Benessere", style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                 IconButton(onClick = onNavigateToAdmin) {
                     Icon(Icons.Rounded.Settings, "Admin", tint = Plum40)
                 }
@@ -66,7 +73,7 @@ fun NewsScreen(onNavigateToAdmin: () -> Unit = {}, viewModel: NewsViewModel = hi
             NewsCard(article = article, onClick = { viewModel.selectArticle(article) })
         }
 
-        item { Spacer(Modifier.height(80.dp)) }
+        item { Spacer(Modifier.height(16.dp)) }
     }
 }
 
@@ -83,11 +90,13 @@ private fun NewsDetailView(article: com.gentlefit.app.domain.model.NewsArticle, 
             Text("${article.category.emoji} ${article.category.displayName}",
                 style = MaterialTheme.typography.labelMedium, color = Plum40)
             Spacer(Modifier.height(8.dp))
-            Text(article.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(article.title, style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
             Spacer(Modifier.height(4.dp))
             Text(article.publishedDate, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(16.dp))
-            Text(article.content, style = MaterialTheme.typography.bodyLarge, lineHeight = 26.sp)
+            Text(article.content, style = MaterialTheme.typography.bodyLarge,
+                lineHeight = 26.sp, color = MaterialTheme.colorScheme.onBackground)
             Spacer(Modifier.height(40.dp))
         }
     }
