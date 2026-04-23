@@ -29,6 +29,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.voicetasker.app.ui.screen.addnote.AddNoteScreen
 import com.voicetasker.app.ui.screen.calendar.CalendarScreen
 import com.voicetasker.app.ui.screen.categories.CategoriesScreen
 import com.voicetasker.app.ui.screen.home.HomeScreen
@@ -41,6 +42,7 @@ sealed class Screen(val route: String) {
     data object Record : Screen("record")
     data object Calendar : Screen("calendar")
     data object NoteDetail : Screen("note/{noteId}") { fun createRoute(id: Long) = "note/$id" }
+    data object AddNote : Screen("add_note")
     data object Categories : Screen("categories")
     data object Settings : Screen("settings")
 }
@@ -73,10 +75,11 @@ fun NavGraph() {
         }
     }) { innerPadding ->
         NavHost(navController, Screen.Home.route, Modifier.padding(innerPadding)) {
-            composable(Screen.Home.route) { HomeScreen(onNavigateToRecord = { navController.navigate(Screen.Record.route) }, onNavigateToNoteDetail = { navController.navigate(Screen.NoteDetail.createRoute(it)) }, onNavigateToSettings = { navController.navigate(Screen.Settings.route) }) }
+            composable(Screen.Home.route) { HomeScreen(onNavigateToRecord = { navController.navigate(Screen.Record.route) }, onNavigateToAddNote = { navController.navigate(Screen.AddNote.route) }, onNavigateToNoteDetail = { navController.navigate(Screen.NoteDetail.createRoute(it)) }, onNavigateToSettings = { navController.navigate(Screen.Settings.route) }) }
             composable(Screen.Record.route) { RecordScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.Calendar.route) { CalendarScreen(onNavigateToNoteDetail = { navController.navigate(Screen.NoteDetail.createRoute(it)) }) }
             composable(Screen.NoteDetail.route, arguments = listOf(navArgument("noteId") { type = NavType.LongType })) { NoteDetailScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.AddNote.route) { AddNoteScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.Categories.route) { CategoriesScreen() }
             composable(Screen.Settings.route) { SettingsScreen() }
         }

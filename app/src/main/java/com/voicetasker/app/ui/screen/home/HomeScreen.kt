@@ -19,12 +19,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.MicNone
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -63,6 +66,7 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     onNavigateToRecord: () -> Unit,
+    onNavigateToAddNote: () -> Unit,
     onNavigateToNoteDetail: (Long) -> Unit,
     onNavigateToSettings: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
@@ -70,7 +74,12 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     Scaffold(
         topBar = { TopAppBar(title = { Text("VoiceTasker", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
-        floatingActionButton = { FloatingActionButton(onClick = onNavigateToRecord, containerColor = MaterialTheme.colorScheme.primary) { Icon(Icons.Filled.Mic, "Registra", tint = Color.White) } },
+        floatingActionButton = {
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SmallFloatingActionButton(onClick = onNavigateToAddNote, containerColor = MaterialTheme.colorScheme.secondaryContainer) { Icon(Icons.Filled.Edit, "Nota manuale", tint = MaterialTheme.colorScheme.onSecondaryContainer) }
+                FloatingActionButton(onClick = onNavigateToRecord, containerColor = MaterialTheme.colorScheme.primary) { Icon(Icons.Filled.Mic, "Registra", tint = Color.White) }
+            }
+        },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -119,38 +128,42 @@ fun HomeScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Outlined.MicNone, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.5f))
                             Spacer(Modifier.height(16.dp))
-                            Text("Nessuna nota vocale", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Premi il pulsante per registrare", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f))
+                            Text("Nessuna nota", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Premi 🎤 per registrare o ✏️ per scrivere", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f))
                         }
                     }
                 }
             }
-            items(uiState.notes, key = { it.id }) { note -> NoteCardItem(note, viewModel.getCategoryColor(note.categoryId), viewModel.getCategoryName(note.categoryId)) { onNavigateToNoteDetail(note.id) } }
+            items(uiState.notes, key = { it.id }) { note -> NoteCardItem(note, viewModel.getCategoryColor(note.categoryId), viewModel.getCategoryName(note.categoryId), onDelete = { viewModel.deleteNote(note.id) }) { onNavigateToNoteDetail(note.id) } }
             item { Spacer(Modifier.height(80.dp)) }
         }
     }
 }
 
 @Composable
-private fun NoteCardItem(note: Note, catColor: Color, catName: String, onClick: () -> Unit) {
+private fun NoteCardItem(note: Note, catColor: Color, catName: String, onDelete: () -> Unit, onClick: () -> Unit) {
     val df = SimpleDateFormat("dd MMM, HH:mm", Locale.ITALIAN)
     Card(onClick = onClick, Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp), shape = MaterialTheme.shapes.medium) {
-        Row(Modifier.padding(16.dp)) {
-            Box(Modifier.size(4.dp, 48.dp).clip(CircleShape).background(catColor))
+        Row(Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp)) {
+            Box(Modifier.size(4.dp, 48.dp).clip(CircleShape).background(catColor).align(Alignment.CenterVertically))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(note.title.ifBlank { "Nota vocale" }, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(note.title.ifBlank { "Nota" }, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(4.dp))
-                Text(note.transcription.ifBlank { "Nessuna trascrizione" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(note.transcription.ifBlank { "Nessun contenuto" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceVariant.copy(0.5f)) {
                         Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.size(8.dp).clip(CircleShape).background(catColor)); Spacer(Modifier.width(4.dp)); Text(catName, style = MaterialTheme.typography.labelSmall)
                         }
                     }
+                    Spacer(Modifier.width(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Filled.AccessTime, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.width(4.dp)); Text(df.format(Date(note.scheduledDate)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
+            }
+            IconButton(onClick = onDelete, modifier = Modifier.align(Alignment.CenterVertically).size(36.dp)) {
+                Icon(Icons.Filled.Delete, "Elimina", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error.copy(0.7f))
             }
         }
     }
