@@ -1,5 +1,9 @@
 package com.voicetasker.app.ui.screen.record
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,8 +22,10 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.voicetasker.app.domain.model.ReminderType
@@ -32,7 +38,29 @@ fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltVi
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(false) }
     val df = SimpleDateFormat("dd MMMM yyyy, HH:mm", Locale.ITALIAN)
+    val context = LocalContext.current
     LaunchedEffect(uiState.isSaved) { if (uiState.isSaved) onNavigateBack() }
+
+    // Runtime permission request
+    var hasAudioPermission by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        hasAudioPermission = granted
+        if (granted) viewModel.startRecording()
+    }
+
+    fun onRecordClick() {
+        if (uiState.isRecording) {
+            viewModel.stopRecording()
+        } else {
+            if (hasAudioPermission) {
+                viewModel.startRecording()
+            } else {
+                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -59,8 +87,8 @@ fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltVi
             val min = (uiState.recordingDurationMs / 60000).toInt(); val sec = ((uiState.recordingDurationMs % 60000) / 1000).toInt()
             Text(String.format("%02d:%02d", min, sec), style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Light)
             Spacer(Modifier.height(24.dp))
-            // Record button
-            FloatingActionButton(onClick = { if (uiState.isRecording) viewModel.stopRecording() else viewModel.startRecording() },
+            // Record button with permission handling
+            FloatingActionButton(onClick = ::onRecordClick,
                 containerColor = if (uiState.isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, modifier = Modifier.size(64.dp)) {
                 Icon(if (uiState.isRecording) Icons.Filled.Stop else Icons.Filled.Mic, "Registra", Modifier.size(28.dp), tint = Color.White)
             }
