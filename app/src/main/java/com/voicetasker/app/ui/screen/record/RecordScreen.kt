@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.voicetasker.app.domain.model.ReminderType
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -36,30 +35,18 @@ import java.util.*
 @Composable
 fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showDatePicker by remember { mutableStateOf(false) }
-    val df = SimpleDateFormat("dd MMMM yyyy, HH:mm", Locale.ITALIAN)
     val context = LocalContext.current
+    var hasPermission by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> hasPermission = granted; if (granted) viewModel.startRecording() }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val df = SimpleDateFormat("dd MMMM yyyy", Locale.ITALIAN)
+
     LaunchedEffect(uiState.isSaved) { if (uiState.isSaved) onNavigateBack() }
 
-    // Runtime permission request
-    var hasAudioPermission by remember {
-        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
-    }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        hasAudioPermission = granted
-        if (granted) viewModel.startRecording()
-    }
-
     fun onRecordClick() {
-        if (uiState.isRecording) {
-            viewModel.stopRecording()
-        } else {
-            if (hasAudioPermission) {
-                viewModel.startRecording()
-            } else {
-                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            }
-        }
+        if (uiState.isRecording) { viewModel.stopRecording() }
+        else if (hasPermission) { viewModel.startRecording() }
+        else { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) }
     }
 
     Scaffold(
@@ -87,7 +74,8 @@ fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltVi
             val min = (uiState.recordingDurationMs / 60000).toInt(); val sec = ((uiState.recordingDurationMs % 60000) / 1000).toInt()
             Text(String.format("%02d:%02d", min, sec), style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Light)
             Spacer(Modifier.height(24.dp))
-            // Record button with permission handling
+
+            // Record button
             FloatingActionButton(onClick = ::onRecordClick,
                 containerColor = if (uiState.isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, modifier = Modifier.size(64.dp)) {
                 Icon(if (uiState.isRecording) Icons.Filled.Stop else Icons.Filled.Mic, "Registra", Modifier.size(28.dp), tint = Color.White)
@@ -95,8 +83,16 @@ fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltVi
             Spacer(Modifier.height(8.dp))
             Text(if (uiState.isRecording) "Tocca per fermare" else if (uiState.transcription.isNotBlank()) "Completata" else "Tocca per registrare", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
+            // Error message
+            uiState.errorMessage?.let { msg ->
+                Spacer(Modifier.height(8.dp))
+                Text(msg, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+
+            // --- Form after recording ---
             if (!uiState.isRecording && uiState.transcription.isNotBlank()) {
                 Spacer(Modifier.height(24.dp)); HorizontalDivider(); Spacer(Modifier.height(16.dp))
+
                 // AI processing indicator
                 if (uiState.isAiProcessing) {
                     Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primaryContainer.copy(0.5f), modifier = Modifier.fillMaxWidth()) {
@@ -108,43 +104,76 @@ fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltVi
                     }
                     Spacer(Modifier.height(12.dp))
                 }
-                OutlinedTextField(uiState.title, viewModel::onTitleChanged, Modifier.fillMaxWidth(), label = { Text(if (uiState.aiTitleSuggestion != null) "Titolo (suggerito da AI ✨)" else "Titolo") }, singleLine = true, shape = MaterialTheme.shapes.medium)
+
+                // Title
+                OutlinedTextField(uiState.title, viewModel::onTitleChanged, Modifier.fillMaxWidth(),
+                    label = { Text(if (uiState.aiTitleSuggestion != null) "Titolo (suggerito da AI ✨)" else "Titolo") },
+                    singleLine = true, shape = MaterialTheme.shapes.medium,
+                    leadingIcon = { Icon(Icons.Filled.Title, null) })
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(uiState.transcription, viewModel::onTranscriptionChanged, Modifier.fillMaxWidth().height(120.dp), label = { Text("Trascrizione") }, shape = MaterialTheme.shapes.medium)
+
+                // Transcription
+                OutlinedTextField(uiState.transcription, viewModel::onTranscriptionChanged,
+                    Modifier.fillMaxWidth().heightIn(min = 100.dp),
+                    label = { Text("Descrizione") }, shape = MaterialTheme.shapes.medium,
+                    leadingIcon = { Icon(Icons.Filled.Notes, null) })
+                Spacer(Modifier.height(12.dp))
+
+                // Date
+                OutlinedButton(onClick = { showDatePicker = true }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
+                    Icon(Icons.Filled.CalendarMonth, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (uiState.noteDate.isNotBlank()) "📅 ${uiState.noteDate}" else "📅 ${df.format(Date(uiState.scheduledDate))}")
+                }
+                Spacer(Modifier.height(12.dp))
+
+                // Time
+                OutlinedTextField(uiState.noteTime, viewModel::onTimeChanged, Modifier.fillMaxWidth(),
+                    label = { Text(if (uiState.noteTime.isNotBlank()) "Ora (estratta da AI ✨)" else "Ora") },
+                    singleLine = true, shape = MaterialTheme.shapes.medium,
+                    leadingIcon = { Icon(Icons.Filled.AccessTime, null) },
+                    placeholder = { Text("es. 15:30") })
+                Spacer(Modifier.height(12.dp))
+
+                // Location
+                OutlinedTextField(uiState.location, viewModel::onLocationChanged, Modifier.fillMaxWidth(),
+                    label = { Text(if (uiState.location.isNotBlank()) "Dove (estratto da AI ✨)" else "Dove") },
+                    singleLine = true, shape = MaterialTheme.shapes.medium,
+                    leadingIcon = { Icon(Icons.Filled.LocationOn, null) },
+                    placeholder = { Text("es. Ufficio, Roma...") })
                 Spacer(Modifier.height(16.dp))
-                // Categories
-                Text("Categoria", style = MaterialTheme.typography.titleMedium)
+
+                // Category
+                Text("Categoria" + if (uiState.selectedCategoryId != null && uiState.aiTitleSuggestion != null) " (suggerita da AI ✨)" else "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     uiState.categories.forEach { cat ->
                         val c = try { Color(android.graphics.Color.parseColor(cat.colorHex)) } catch (_: Exception) { MaterialTheme.colorScheme.primary }
                         val sel = uiState.selectedCategoryId == cat.id
-                        Surface(onClick = { viewModel.onCategorySelected(cat.id) }, shape = MaterialTheme.shapes.small, color = if (sel) c.copy(0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(0.5f)) {
-                            Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Box(Modifier.size(10.dp).clip(CircleShape).background(c)); Spacer(Modifier.width(6.dp)); Text(cat.name, style = MaterialTheme.typography.labelMedium, color = if (sel) c else MaterialTheme.colorScheme.onSurfaceVariant)
+                        Surface(onClick = { viewModel.onCategorySelected(cat.id) }, shape = MaterialTheme.shapes.small,
+                            color = if (sel) c.copy(0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(0.5f)) {
+                            Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(10.dp).clip(CircleShape).background(c))
+                                Spacer(Modifier.width(6.dp))
+                                Text(cat.name, style = MaterialTheme.typography.labelMedium, color = if (sel) c else MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
                 }
-                Spacer(Modifier.height(16.dp))
-                // Date
-                OutlinedButton(onClick = { showDatePicker = true }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) { Icon(Icons.Filled.CalendarMonth, null); Spacer(Modifier.width(8.dp)); Text(df.format(Date(uiState.scheduledDate))) }
-                Spacer(Modifier.height(16.dp))
-                // Reminders
-                Text("Promemoria", style = MaterialTheme.typography.titleMedium); Spacer(Modifier.height(8.dp))
-                ReminderType.entries.forEach { type ->
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
-                        Checkbox(type in uiState.selectedReminders, { viewModel.onReminderToggled(type) }, colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary))
-                        Text(type.label, style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
+
                 Spacer(Modifier.height(24.dp))
-                Button(onClick = viewModel::saveNote, Modifier.fillMaxWidth().height(52.dp), shape = MaterialTheme.shapes.medium) { Text("Salva nota", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) }
+                // Save button
+                Button(onClick = viewModel::saveNote, Modifier.fillMaxWidth().height(52.dp), shape = MaterialTheme.shapes.medium,
+                    enabled = uiState.title.isNotBlank() || uiState.transcription.isNotBlank()) {
+                    Icon(Icons.Filled.Save, null); Spacer(Modifier.width(8.dp))
+                    Text("Salva nota", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                }
                 Spacer(Modifier.height(32.dp))
             }
-            uiState.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
         }
     }
+
+    // Date picker
     if (showDatePicker) {
         val dps = rememberDatePickerState(initialSelectedDateMillis = uiState.scheduledDate)
         DatePickerDialog(onDismissRequest = { showDatePicker = false },

@@ -66,7 +66,8 @@ fun CategoriesScreen(viewModel: CategoriesViewModel = hiltViewModel()) {
                         Box(Modifier.size(40.dp).clip(CircleShape).background(color), contentAlignment = Alignment.Center) { Icon(Icons.Filled.Label, null, tint = Color.White, modifier = Modifier.size(20.dp)) }
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) { Text(cat.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold); if (cat.isDefault) Text("Predefinita", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                        if (!cat.isDefault) { IconButton(onClick = { viewModel.showEdit(cat) }) { Icon(Icons.Filled.Edit, "Modifica", Modifier.size(20.dp)) }; IconButton(onClick = { viewModel.delete(cat.id) }) { Icon(Icons.Filled.Delete, "Elimina", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error) } }
+                        IconButton(onClick = { viewModel.showEdit(cat) }) { Icon(Icons.Filled.Edit, "Modifica", Modifier.size(20.dp)) }
+                        if (!cat.isDefault) { IconButton(onClick = { viewModel.delete(cat.id) }) { Icon(Icons.Filled.Delete, "Elimina", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error) } }
                     }
                 }
             }

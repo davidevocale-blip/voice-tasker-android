@@ -18,5 +18,5 @@ class NoteRepositoryImpl @Inject constructor(private val dao: NoteDao) : NoteRep
     override suspend fun countNotesSince(sinceMillis: Long): Int = dao.countNotesSince(sinceMillis)
 }
 
-private fun NoteEntity.toDomain() = Note(id, title, transcription, audioFilePath, categoryId, scheduledDate, createdAt, updatedAt, durationMs, isPinned, isCompleted)
-private fun Note.toEntity() = NoteEntity(id, title, transcription, audioFilePath, categoryId, scheduledDate, createdAt, updatedAt, durationMs, isPinned, isCompleted)
+private fun NoteEntity.toDomain() = Note(id, title, transcription, audioFilePath, categoryId, scheduledDate, createdAt, updatedAt, durationMs, isPinned, isCompleted, location, noteTime)
+private fun Note.toEntity() = NoteEntity(id, title, transcription, audioFilePath, categoryId, scheduledDate, createdAt, updatedAt, durationMs, isPinned, isCompleted, location, noteTime)

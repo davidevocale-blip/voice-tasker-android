@@ -11,5 +11,7 @@ data class Note(
     val updatedAt: Long = System.currentTimeMillis(),
     val durationMs: Long = 0,
     val isPinned: Boolean = false,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val location: String = "",
+    val noteTime: String = ""
 )

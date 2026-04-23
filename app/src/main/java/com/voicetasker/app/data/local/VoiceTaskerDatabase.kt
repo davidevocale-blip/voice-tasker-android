@@ -10,7 +10,7 @@ import com.voicetasker.app.data.local.entity.CategoryEntity
 import com.voicetasker.app.data.local.entity.NoteEntity
 import com.voicetasker.app.data.local.entity.ReminderEntity
 
-@Database(entities = [NoteEntity::class, CategoryEntity::class, ReminderEntity::class], version = 1, exportSchema = false)
+@Database(entities = [NoteEntity::class, CategoryEntity::class, ReminderEntity::class], version = 2, exportSchema = false)
 abstract class VoiceTaskerDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao
     abstract fun categoryDao(): CategoryDao
@@ -23,7 +23,7 @@ abstract class VoiceTaskerDatabase : RoomDatabase() {
                 super.onCreate(db)
                 val now = System.currentTimeMillis()
                 db.execSQL("INSERT INTO categories (name, colorHex, iconName, isDefault, createdAt) VALUES ('Lavoro', '#6C63FF', 'Work', 1, $now)")
-                db.execSQL("INSERT INTO categories (name, colorHex, iconName, isDefault, createdAt) VALUES ('Personale', '#FF6584', 'Person', 1, $now)")
+                db.execSQL("INSERT INTO categories (name, colorHex, iconName, isDefault, createdAt) VALUES ('Famiglia', '#FF6584', 'Person', 1, $now)")
                 db.execSQL("INSERT INTO categories (name, colorHex, iconName, isDefault, createdAt) VALUES ('Salute', '#00D9A6', 'Favorite', 1, $now)")
             }
         }

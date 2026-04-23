@@ -20,10 +20,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.voicetasker.app.data.ai.GeminiService
 import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.model.Note
 import com.voicetasker.app.domain.model.ReminderType
-import com.voicetasker.app.data.ai.GeminiService
 import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
@@ -49,7 +49,9 @@ data class AddNoteUiState(
     val selectedReminders: Set<ReminderType> = emptySet(),
     val isSaved: Boolean = false,
     val isAiProcessing: Boolean = false,
-    val aiTitleSuggestion: String? = null
+    val aiTitleSuggestion: String? = null,
+    val location: String = "",
+    val noteTime: String = ""
 )
 
 @HiltViewModel
@@ -75,6 +77,8 @@ class AddNoteViewModel @Inject constructor(
     fun onContentChanged(t: String) { _uiState.update { it.copy(content = t) } }
     fun onCategorySelected(id: Long) { _uiState.update { it.copy(selectedCategoryId = id) } }
     fun onDateChanged(d: Long) { _uiState.update { it.copy(scheduledDate = d) } }
+    fun onLocationChanged(l: String) { _uiState.update { it.copy(location = l) } }
+    fun onTimeChanged(t: String) { _uiState.update { it.copy(noteTime = t) } }
     fun onReminderToggled(type: ReminderType) {
         _uiState.update { s ->
             val updated = s.selectedReminders.toMutableSet()
@@ -89,19 +93,33 @@ class AddNoteViewModel @Inject constructor(
         if (content.length < 15) return
         viewModelScope.launch {
             _uiState.update { it.copy(isAiProcessing = true) }
-            // Generate title if empty
-            if (_uiState.value.title.isBlank()) {
-                val title = geminiService.generateTitle(content)
-                if (title.isNotBlank()) _uiState.update { it.copy(title = title, aiTitleSuggestion = title) }
-            }
-            // Suggest category
             val catNames = _uiState.value.categories.map { it.name }
-            val suggested = geminiService.suggestCategory(content, catNames)
-            if (suggested != null) {
-                val catId = _uiState.value.categories.find { it.name.equals(suggested, ignoreCase = true) }?.id
-                if (catId != null) _uiState.update { it.copy(selectedCategoryId = catId) }
+            val metadata = geminiService.extractNoteMetadata(content, catNames)
+
+            _uiState.update { s ->
+                var updated = s.copy(isAiProcessing = false)
+                if (metadata.title.isNotBlank() && s.title.isBlank()) {
+                    updated = updated.copy(title = metadata.title, aiTitleSuggestion = metadata.title)
+                }
+                if (metadata.location != null && s.location.isBlank()) {
+                    updated = updated.copy(location = metadata.location)
+                }
+                if (metadata.time != null && s.noteTime.isBlank()) {
+                    updated = updated.copy(noteTime = metadata.time)
+                }
+                if (metadata.date != null) {
+                    try {
+                        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        val parsed = sdf.parse(metadata.date)
+                        if (parsed != null) updated = updated.copy(scheduledDate = parsed.time)
+                    } catch (_: Exception) {}
+                }
+                if (metadata.category != null) {
+                    val catId = s.categories.find { it.name.equals(metadata.category, ignoreCase = true) }?.id
+                    if (catId != null) updated = updated.copy(selectedCategoryId = catId)
+                }
+                updated
             }
-            _uiState.update { it.copy(isAiProcessing = false) }
         }
     }
 
@@ -116,9 +134,10 @@ class AddNoteViewModel @Inject constructor(
                     audioFilePath = "",
                     categoryId = s.selectedCategoryId ?: 1,
                     scheduledDate = s.scheduledDate,
-                    createdAt = now,
-                    updatedAt = now,
-                    durationMs = 0
+                    createdAt = now, updatedAt = now,
+                    durationMs = 0,
+                    location = s.location,
+                    noteTime = s.noteTime
                 )
             )
             s.selectedReminders.forEach { type ->
@@ -134,70 +153,37 @@ class AddNoteViewModel @Inject constructor(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddNoteScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: AddNoteViewModel = hiltViewModel()
-) {
+fun AddNoteScreen(onNavigateBack: () -> Unit, viewModel: AddNoteViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(false) }
-    val df = SimpleDateFormat("dd MMMM yyyy, HH:mm", Locale.ITALIAN)
+    val df = SimpleDateFormat("dd MMMM yyyy", Locale.ITALIAN)
 
     LaunchedEffect(uiState.isSaved) { if (uiState.isSaved) onNavigateBack() }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Nuova nota") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro")
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = viewModel::saveNote,
-                        enabled = uiState.title.isNotBlank() || uiState.content.isNotBlank()
-                    ) {
-                        Icon(Icons.Filled.Check, "Salva", tint = MaterialTheme.colorScheme.primary)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
+            TopAppBar(title = { Text("Nuova nota") },
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
+                actions = { IconButton(onClick = viewModel::saveNote, enabled = uiState.title.isNotBlank() || uiState.content.isNotBlank()) { Icon(Icons.Filled.Check, "Salva", tint = MaterialTheme.colorScheme.primary) } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background))
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp)
         ) {
             // Title
-            OutlinedTextField(
-                value = uiState.title,
-                onValueChange = viewModel::onTitleChanged,
-                modifier = Modifier.fillMaxWidth(),
+            OutlinedTextField(uiState.title, viewModel::onTitleChanged, Modifier.fillMaxWidth(),
                 label = { Text(if (uiState.aiTitleSuggestion != null) "Titolo (suggerito da AI ✨)" else "Titolo") },
-                singleLine = true,
-                shape = MaterialTheme.shapes.medium,
-                leadingIcon = { Icon(Icons.Filled.Title, null) }
-            )
-
+                singleLine = true, shape = MaterialTheme.shapes.medium,
+                leadingIcon = { Icon(Icons.Filled.Title, null) })
             Spacer(Modifier.height(16.dp))
 
             // Content
-            OutlinedTextField(
-                value = uiState.content,
-                onValueChange = viewModel::onContentChanged,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 150.dp),
-                label = { Text("Contenuto della nota") },
-                shape = MaterialTheme.shapes.medium,
-                leadingIcon = { Icon(Icons.Filled.Notes, null) }
-            )
-
+            OutlinedTextField(uiState.content, viewModel::onContentChanged,
+                Modifier.fillMaxWidth().heightIn(min = 150.dp),
+                label = { Text("Contenuto della nota") }, shape = MaterialTheme.shapes.medium,
+                leadingIcon = { Icon(Icons.Filled.Notes, null) })
             Spacer(Modifier.height(12.dp))
 
             // AI suggestion button
@@ -211,14 +197,8 @@ fun AddNoteScreen(
                         }
                     }
                 } else {
-                    OutlinedButton(
-                        onClick = viewModel::requestAiSuggestions,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text("✨")
-                        Spacer(Modifier.width(8.dp))
-                        Text("Suggerisci con Gemini AI")
+                    OutlinedButton(onClick = viewModel::requestAiSuggestions, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
+                        Text("✨"); Spacer(Modifier.width(8.dp)); Text("Suggerisci con Gemini AI")
                     }
                 }
             }
@@ -227,51 +207,48 @@ fun AddNoteScreen(
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             Spacer(Modifier.height(16.dp))
 
+            // Date
+            Text("Data programmata", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = { showDatePicker = true }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
+                Icon(Icons.Filled.CalendarMonth, null); Spacer(Modifier.width(8.dp))
+                Text(df.format(Date(uiState.scheduledDate)))
+            }
+            Spacer(Modifier.height(12.dp))
+
+            // Time
+            OutlinedTextField(uiState.noteTime, viewModel::onTimeChanged, Modifier.fillMaxWidth(),
+                label = { Text("Ora") }, singleLine = true, shape = MaterialTheme.shapes.medium,
+                leadingIcon = { Icon(Icons.Filled.AccessTime, null) },
+                placeholder = { Text("es. 15:30") })
+            Spacer(Modifier.height(12.dp))
+
+            // Location
+            OutlinedTextField(uiState.location, viewModel::onLocationChanged, Modifier.fillMaxWidth(),
+                label = { Text("Dove") }, singleLine = true, shape = MaterialTheme.shapes.medium,
+                leadingIcon = { Icon(Icons.Filled.LocationOn, null) },
+                placeholder = { Text("es. Ufficio, Roma...") })
+
+            Spacer(Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+            Spacer(Modifier.height(16.dp))
+
             // Category
-            Text("Categoria" + if (uiState.aiTitleSuggestion != null) " (suggerita da AI ✨)" else "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text("Categoria" + if (uiState.aiTitleSuggestion != null) " (suggerita da AI ✨)" else "",
+                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 uiState.categories.forEach { cat ->
-                    val c = try {
-                        Color(android.graphics.Color.parseColor(cat.colorHex))
-                    } catch (_: Exception) {
-                        MaterialTheme.colorScheme.primary
-                    }
+                    val c = try { Color(android.graphics.Color.parseColor(cat.colorHex)) } catch (_: Exception) { MaterialTheme.colorScheme.primary }
                     val sel = uiState.selectedCategoryId == cat.id
-                    Surface(
-                        onClick = { viewModel.onCategorySelected(cat.id) },
-                        shape = MaterialTheme.shapes.small,
-                        color = if (sel) c.copy(0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(0.5f)
-                    ) {
-                        Row(
-                            Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(Modifier.size(10.dp).clip(CircleShape).background(c))
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                cat.name,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (sel) c else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                    Surface(onClick = { viewModel.onCategorySelected(cat.id) }, shape = MaterialTheme.shapes.small,
+                        color = if (sel) c.copy(0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(0.5f)) {
+                        Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(10.dp).clip(CircleShape).background(c)); Spacer(Modifier.width(6.dp))
+                            Text(cat.name, style = MaterialTheme.typography.labelMedium, color = if (sel) c else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            // Scheduled date
-            Text("Data programmata", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(
-                onClick = { showDatePicker = true },
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Icon(Icons.Filled.CalendarMonth, null)
-                Spacer(Modifier.width(8.dp))
-                Text(df.format(Date(uiState.scheduledDate)))
             }
 
             Spacer(Modifier.height(20.dp))
@@ -280,15 +257,9 @@ fun AddNoteScreen(
             Text("Promemoria", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             ReminderType.entries.forEach { type ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 2.dp)
-                ) {
-                    Checkbox(
-                        checked = type in uiState.selectedReminders,
-                        onCheckedChange = { viewModel.onReminderToggled(type) },
-                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+                    Checkbox(checked = type in uiState.selectedReminders, onCheckedChange = { viewModel.onReminderToggled(type) },
+                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary))
                     Text(type.label, style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -296,37 +267,21 @@ fun AddNoteScreen(
             Spacer(Modifier.height(24.dp))
 
             // Save button
-            Button(
-                onClick = viewModel::saveNote,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = MaterialTheme.shapes.medium,
-                enabled = uiState.title.isNotBlank() || uiState.content.isNotBlank()
-            ) {
-                Icon(Icons.Filled.Save, null)
-                Spacer(Modifier.width(8.dp))
+            Button(onClick = viewModel::saveNote, Modifier.fillMaxWidth().height(52.dp), shape = MaterialTheme.shapes.medium,
+                enabled = uiState.title.isNotBlank() || uiState.content.isNotBlank()) {
+                Icon(Icons.Filled.Save, null); Spacer(Modifier.width(8.dp))
                 Text("Salva nota", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
-
             Spacer(Modifier.height(32.dp))
         }
     }
 
-    // Date picker dialog
+    // Date picker
     if (showDatePicker) {
         val dps = rememberDatePickerState(initialSelectedDateMillis = uiState.scheduledDate)
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    dps.selectedDateMillis?.let { viewModel.onDateChanged(it) }
-                    showDatePicker = false
-                }) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Annulla") }
-            }
+        DatePickerDialog(onDismissRequest = { showDatePicker = false },
+            confirmButton = { TextButton(onClick = { dps.selectedDateMillis?.let { viewModel.onDateChanged(it) }; showDatePicker = false }) { Text("OK") } },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Annulla") } }
         ) { DatePicker(state = dps) }
     }
 }

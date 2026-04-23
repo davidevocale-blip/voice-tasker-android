@@ -16,5 +16,7 @@ data class NoteEntity(
     val updatedAt: Long,
     val durationMs: Long,
     val isPinned: Boolean = false,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val location: String = "",
+    val noteTime: String = ""
 )

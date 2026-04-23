@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 import javax.inject.Inject
 
 data class RecordUiState(
@@ -34,6 +36,9 @@ data class RecordUiState(
     val isSaved: Boolean = false,
     val isAiProcessing: Boolean = false,
     val aiTitleSuggestion: String? = null,
+    val location: String = "",
+    val noteTime: String = "",
+    val noteDate: String = "",
     val errorMessage: String? = null
 )
 
@@ -54,12 +59,8 @@ class RecordViewModel @Inject constructor(
     init { viewModelScope.launch { categoryRepository.getAllCategories().collect { cats -> _uiState.update { it.copy(categories = cats) } } } }
 
     fun startRecording() {
-        _uiState.update { it.copy(isRecording = true, amplitudes = emptyList(), recordingDurationMs = 0, transcription = "", errorMessage = null, title = "", aiTitleSuggestion = null) }
-
-        // Start speech recognition (uses mic exclusively - no MediaRecorder conflict)
+        _uiState.update { it.copy(isRecording = true, amplitudes = emptyList(), recordingDurationMs = 0, transcription = "", errorMessage = null, title = "", aiTitleSuggestion = null, location = "", noteTime = "", noteDate = "") }
         speechTranscriber.startListening()
-
-        // Collect transcription results
         viewModelScope.launch {
             speechTranscriber.state.collect { state ->
                 when (state) {
@@ -74,31 +75,20 @@ class RecordViewModel @Inject constructor(
                 }
             }
         }
-
-        // Collect RMS levels for waveform animation
         rmsJob = viewModelScope.launch {
             speechTranscriber.rmsLevel.collect { rms ->
-                if (_uiState.value.isRecording) {
-                    _uiState.update { it.copy(amplitudes = it.amplitudes + rms) }
-                }
+                if (_uiState.value.isRecording) _uiState.update { it.copy(amplitudes = it.amplitudes + rms) }
             }
         }
-
-        // Timer
         timerJob = viewModelScope.launch {
-            while (_uiState.value.isRecording) {
-                delay(100)
-                _uiState.update { it.copy(recordingDurationMs = it.recordingDurationMs + 100) }
-            }
+            while (_uiState.value.isRecording) { delay(100); _uiState.update { it.copy(recordingDurationMs = it.recordingDurationMs + 100) } }
         }
     }
 
     fun stopRecording() {
         speechTranscriber.stopListening()
-        timerJob?.cancel()
-        rmsJob?.cancel()
+        timerJob?.cancel(); rmsJob?.cancel()
         _uiState.update { it.copy(isRecording = false) }
-        // Launch AI processing
         if (geminiService.isAvailable && _uiState.value.transcription.isNotBlank()) {
             viewModelScope.launch { processWithAi() }
         }
@@ -106,33 +96,58 @@ class RecordViewModel @Inject constructor(
 
     private suspend fun processWithAi() {
         _uiState.update { it.copy(isAiProcessing = true) }
-        val rawText = _uiState.value.transcription
-        // 1. Improve transcription
-        val improved = geminiService.improveTranscription(rawText)
-        _uiState.update { it.copy(transcription = improved) }
-        // 2. Generate title suggestion
-        val title = geminiService.generateTitle(improved)
-        _uiState.update { it.copy(aiTitleSuggestion = title, title = title) }
-        // 3. Suggest category
         val catNames = _uiState.value.categories.map { it.name }
-        val suggested = geminiService.suggestCategory(improved, catNames)
-        if (suggested != null) {
-            val catId = _uiState.value.categories.find { it.name.equals(suggested, ignoreCase = true) }?.id
-            if (catId != null) _uiState.update { it.copy(selectedCategoryId = catId) }
+        val metadata = geminiService.extractNoteMetadata(_uiState.value.transcription, catNames)
+
+        _uiState.update { s ->
+            var updated = s.copy(
+                transcription = metadata.improvedText,
+                title = metadata.title,
+                aiTitleSuggestion = metadata.title.takeIf { it.isNotBlank() },
+                location = metadata.location ?: "",
+                noteTime = metadata.time ?: "",
+                noteDate = metadata.date ?: "",
+                isAiProcessing = false
+            )
+            // Set scheduled date from extracted date
+            if (metadata.date != null) {
+                try {
+                    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    val parsed = sdf.parse(metadata.date)
+                    if (parsed != null) updated = updated.copy(scheduledDate = parsed.time)
+                } catch (_: Exception) {}
+            }
+            // Set category
+            if (metadata.category != null) {
+                val catId = s.categories.find { it.name.equals(metadata.category, ignoreCase = true) }?.id
+                if (catId != null) updated = updated.copy(selectedCategoryId = catId)
+            }
+            updated
         }
-        _uiState.update { it.copy(isAiProcessing = false) }
     }
 
     fun onTitleChanged(t: String) { _uiState.update { it.copy(title = t) } }
     fun onTranscriptionChanged(t: String) { _uiState.update { it.copy(transcription = t) } }
     fun onCategorySelected(id: Long) { _uiState.update { it.copy(selectedCategoryId = id) } }
     fun onScheduledDateChanged(d: Long) { _uiState.update { it.copy(scheduledDate = d) } }
+    fun onLocationChanged(l: String) { _uiState.update { it.copy(location = l) } }
+    fun onTimeChanged(t: String) { _uiState.update { it.copy(noteTime = t) } }
     fun onReminderToggled(type: ReminderType) { _uiState.update { s -> val u = s.selectedReminders.toMutableSet(); if (type in u) u.remove(type) else u.add(type); s.copy(selectedReminders = u) } }
 
     fun saveNote() {
         viewModelScope.launch {
             val s = _uiState.value; val now = System.currentTimeMillis()
-            val noteId = noteRepository.insertNote(Note(title = s.title.ifBlank { "Nota vocale" }, transcription = s.transcription, audioFilePath = "", categoryId = s.selectedCategoryId ?: 1, scheduledDate = s.scheduledDate, createdAt = now, updatedAt = now, durationMs = s.recordingDurationMs))
+            val noteId = noteRepository.insertNote(Note(
+                title = s.title.ifBlank { "Nota vocale" },
+                transcription = s.transcription,
+                audioFilePath = "",
+                categoryId = s.selectedCategoryId ?: 1,
+                scheduledDate = s.scheduledDate,
+                createdAt = now, updatedAt = now,
+                durationMs = s.recordingDurationMs,
+                location = s.location,
+                noteTime = s.noteTime
+            ))
             s.selectedReminders.forEach { type -> reminderRepository.scheduleReminder(noteId, s.scheduledDate, type) }
             feedbackManager.play(FeedbackManager.FeedbackType.SAVE)
             _uiState.update { it.copy(isSaved = true) }
