@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "GentleFit"
+rootProject.name = "VoiceTasker"
 include(":app")
