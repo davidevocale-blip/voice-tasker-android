@@ -54,19 +54,42 @@ class RecordViewModel @Inject constructor(
     init { viewModelScope.launch { categoryRepository.getAllCategories().collect { cats -> _uiState.update { it.copy(categories = cats) } } } }
 
     fun startRecording() {
-        val path = audioRecorder.startRecording()
-        if (path != null) {
-            _uiState.update { it.copy(isRecording = true, audioFilePath = path, amplitudes = emptyList(), recordingDurationMs = 0) }
-            viewModelScope.launch { while (_uiState.value.isRecording) { val amp = audioRecorder.getMaxAmplitude(); _uiState.update { it.copy(amplitudes = it.amplitudes + amp, recordingDurationMs = it.recordingDurationMs + 100) }; delay(100) } }
-        }
+        _uiState.update { it.copy(isRecording = true, amplitudes = emptyList(), recordingDurationMs = 0, errorMessage = null) }
+
+        // Start speech transcription first
         speechTranscriber.startListening()
         viewModelScope.launch {
             speechTranscriber.state.collect { state ->
                 when (state) {
                     is SpeechTranscriberImpl.TranscriptionState.Result -> _uiState.update { it.copy(transcription = state.text) }
                     is SpeechTranscriberImpl.TranscriptionState.PartialResult -> _uiState.update { it.copy(transcription = state.text) }
-                    is SpeechTranscriberImpl.TranscriptionState.Error -> _uiState.update { it.copy(errorMessage = state.message) }
+                    is SpeechTranscriberImpl.TranscriptionState.Error -> {
+                        // Only show permission errors, ignore transient ones
+                        if (state.message.contains("Permessi")) {
+                            _uiState.update { it.copy(errorMessage = state.message) }
+                        }
+                    }
                     else -> {}
+                }
+            }
+        }
+
+        // Start audio recorder after a short delay to avoid mic conflict
+        viewModelScope.launch {
+            delay(500)
+            val path = audioRecorder.startRecording()
+            if (path != null) {
+                _uiState.update { it.copy(audioFilePath = path) }
+                while (_uiState.value.isRecording) {
+                    val amp = audioRecorder.getMaxAmplitude()
+                    _uiState.update { it.copy(amplitudes = it.amplitudes + amp, recordingDurationMs = it.recordingDurationMs + 100) }
+                    delay(100)
+                }
+            } else {
+                // MediaRecorder failed - still keep transcription running, just track time
+                while (_uiState.value.isRecording) {
+                    _uiState.update { it.copy(recordingDurationMs = it.recordingDurationMs + 100) }
+                    delay(100)
                 }
             }
         }
