@@ -66,7 +66,7 @@ fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltVi
         topBar = {
             TopAppBar(title = { Text("Registra nota") },
                 navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
-                actions = { if (!uiState.isRecording && uiState.audioFilePath != null) { IconButton(onClick = viewModel::saveNote) { Icon(Icons.Filled.Check, "Salva", tint = MaterialTheme.colorScheme.primary) } } },
+                actions = { if (!uiState.isRecording && uiState.transcription.isNotBlank()) { IconButton(onClick = viewModel::saveNote) { Icon(Icons.Filled.Check, "Salva", tint = MaterialTheme.colorScheme.primary) } } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background))
         }, containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
