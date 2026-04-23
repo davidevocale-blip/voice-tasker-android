@@ -7,6 +7,7 @@ import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.model.Note
 import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
+import com.voicetasker.app.util.FeedbackManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,7 +30,8 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    val feedbackManager: FeedbackManager
 ) : ViewModel() {
     private val _searchQuery = MutableStateFlow("")
     private val _selectedCategoryId = MutableStateFlow<Long?>(null)
@@ -45,7 +47,7 @@ class HomeViewModel @Inject constructor(
 
     fun onSearchQueryChanged(q: String) { _searchQuery.value = q }
     fun onCategoryFilterChanged(id: Long?) { _selectedCategoryId.value = if (_selectedCategoryId.value == id) null else id }
-    fun deleteNote(id: Long) { viewModelScope.launch { noteRepository.deleteNoteById(id) } }
+    fun deleteNote(id: Long) { viewModelScope.launch { noteRepository.deleteNoteById(id); feedbackManager.play(FeedbackManager.FeedbackType.DELETE) } }
 
     fun getCategoryColor(catId: Long): Color {
         val hex = uiState.value.categories.find { it.id == catId }?.colorHex ?: "#6C63FF"

@@ -10,6 +10,7 @@ import com.voicetasker.app.domain.model.ReminderType
 import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
+import com.voicetasker.app.util.FeedbackManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +23,7 @@ data class NoteDetailUiState(val note: Note? = null, val categories: List<Catego
 
 @HiltViewModel
 class NoteDetailViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle, private val noteRepository: NoteRepository, private val categoryRepository: CategoryRepository, private val reminderRepository: ReminderRepository
+    savedStateHandle: SavedStateHandle, private val noteRepository: NoteRepository, private val categoryRepository: CategoryRepository, private val reminderRepository: ReminderRepository, private val feedbackManager: FeedbackManager
 ) : ViewModel() {
     private val noteId: Long = savedStateHandle.get<Long>("noteId") ?: 0L
     private val _uiState = MutableStateFlow(NoteDetailUiState())
@@ -39,8 +40,8 @@ class NoteDetailViewModel @Inject constructor(
     fun onEditTranscriptionChanged(t: String) { _uiState.update { it.copy(editTranscription = t) } }
     fun onEditCategoryChanged(id: Long) { _uiState.update { it.copy(editCategoryId = id) } }
     fun cancelEditing() { _uiState.update { it.copy(isEditing = false) } }
-    fun saveEdits() { val n = _uiState.value.note ?: return; val s = _uiState.value; viewModelScope.launch { noteRepository.updateNote(n.copy(title = s.editTitle, transcription = s.editTranscription, categoryId = s.editCategoryId ?: n.categoryId, updatedAt = System.currentTimeMillis())); _uiState.update { it.copy(isEditing = false) } } }
-    fun deleteNote() { viewModelScope.launch { noteRepository.deleteNoteById(noteId); _uiState.update { it.copy(isDeleted = true) } } }
+    fun saveEdits() { val n = _uiState.value.note ?: return; val s = _uiState.value; viewModelScope.launch { noteRepository.updateNote(n.copy(title = s.editTitle, transcription = s.editTranscription, categoryId = s.editCategoryId ?: n.categoryId, updatedAt = System.currentTimeMillis())); feedbackManager.play(FeedbackManager.FeedbackType.EDIT); _uiState.update { it.copy(isEditing = false) } } }
+    fun deleteNote() { viewModelScope.launch { noteRepository.deleteNoteById(noteId); feedbackManager.play(FeedbackManager.FeedbackType.DELETE); _uiState.update { it.copy(isDeleted = true) } } }
     fun addReminder(type: ReminderType) { val n = _uiState.value.note ?: return; viewModelScope.launch { reminderRepository.scheduleReminder(noteId, n.scheduledDate, type) } }
     fun removeReminder(id: Long) { viewModelScope.launch { reminderRepository.cancelReminder(id) } }
 }

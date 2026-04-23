@@ -26,6 +26,7 @@ import com.voicetasker.app.domain.model.ReminderType
 import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
+import com.voicetasker.app.util.FeedbackManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,7 +53,8 @@ data class AddNoteUiState(
 class AddNoteViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
     private val categoryRepository: CategoryRepository,
-    private val reminderRepository: ReminderRepository
+    private val reminderRepository: ReminderRepository,
+    private val feedbackManager: FeedbackManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AddNoteUiState())
     val uiState: StateFlow<AddNoteUiState> = _uiState.asStateFlow()
@@ -96,6 +98,7 @@ class AddNoteViewModel @Inject constructor(
             s.selectedReminders.forEach { type ->
                 reminderRepository.scheduleReminder(noteId, s.scheduledDate, type)
             }
+            feedbackManager.play(FeedbackManager.FeedbackType.SAVE)
             _uiState.update { it.copy(isSaved = true) }
         }
     }

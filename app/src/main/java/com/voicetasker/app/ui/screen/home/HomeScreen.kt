@@ -17,6 +17,12 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
@@ -134,16 +140,25 @@ fun HomeScreen(
                     }
                 }
             }
-            items(uiState.notes, key = { it.id }) { note -> NoteCardItem(note, viewModel.getCategoryColor(note.categoryId), viewModel.getCategoryName(note.categoryId), onDelete = { viewModel.deleteNote(note.id) }) { onNavigateToNoteDetail(note.id) } }
+            items(uiState.notes, key = { it.id }) { note ->
+                NoteCardItem(
+                    note = note,
+                    catColor = viewModel.getCategoryColor(note.categoryId),
+                    catName = viewModel.getCategoryName(note.categoryId),
+                    onDelete = { viewModel.deleteNote(note.id) },
+                    onClick = { onNavigateToNoteDetail(note.id) },
+                    modifier = Modifier.animateItem(fadeInSpec = tween(300), fadeOutSpec = tween(300))
+                )
+            }
             item { Spacer(Modifier.height(80.dp)) }
         }
     }
 }
 
 @Composable
-private fun NoteCardItem(note: Note, catColor: Color, catName: String, onDelete: () -> Unit, onClick: () -> Unit) {
+private fun NoteCardItem(note: Note, catColor: Color, catName: String, onDelete: () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val df = SimpleDateFormat("dd MMM, HH:mm", Locale.ITALIAN)
-    Card(onClick = onClick, Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp), shape = MaterialTheme.shapes.medium) {
+    Card(onClick = onClick, modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp), shape = MaterialTheme.shapes.medium) {
         Row(Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp)) {
             Box(Modifier.size(4.dp, 48.dp).clip(CircleShape).background(catColor).align(Alignment.CenterVertically))
             Spacer(Modifier.width(12.dp))
