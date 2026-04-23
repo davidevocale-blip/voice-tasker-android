@@ -23,6 +23,7 @@ import androidx.lifecycle.viewModelScope
 import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.model.Note
 import com.voicetasker.app.domain.model.ReminderType
+import com.voicetasker.app.data.ai.GeminiService
 import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
@@ -46,7 +47,9 @@ data class AddNoteUiState(
     val selectedCategoryId: Long? = null,
     val scheduledDate: Long = System.currentTimeMillis(),
     val selectedReminders: Set<ReminderType> = emptySet(),
-    val isSaved: Boolean = false
+    val isSaved: Boolean = false,
+    val isAiProcessing: Boolean = false,
+    val aiTitleSuggestion: String? = null
 )
 
 @HiltViewModel
@@ -54,7 +57,8 @@ class AddNoteViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
     private val categoryRepository: CategoryRepository,
     private val reminderRepository: ReminderRepository,
-    private val feedbackManager: FeedbackManager
+    private val feedbackManager: FeedbackManager,
+    private val geminiService: GeminiService
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AddNoteUiState())
     val uiState: StateFlow<AddNoteUiState> = _uiState.asStateFlow()
@@ -76,6 +80,28 @@ class AddNoteViewModel @Inject constructor(
             val updated = s.selectedReminders.toMutableSet()
             if (type in updated) updated.remove(type) else updated.add(type)
             s.copy(selectedReminders = updated)
+        }
+    }
+
+    fun requestAiSuggestions() {
+        if (!geminiService.isAvailable) return
+        val content = _uiState.value.content
+        if (content.length < 15) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAiProcessing = true) }
+            // Generate title if empty
+            if (_uiState.value.title.isBlank()) {
+                val title = geminiService.generateTitle(content)
+                if (title.isNotBlank()) _uiState.update { it.copy(title = title, aiTitleSuggestion = title) }
+            }
+            // Suggest category
+            val catNames = _uiState.value.categories.map { it.name }
+            val suggested = geminiService.suggestCategory(content, catNames)
+            if (suggested != null) {
+                val catId = _uiState.value.categories.find { it.name.equals(suggested, ignoreCase = true) }?.id
+                if (catId != null) _uiState.update { it.copy(selectedCategoryId = catId) }
+            }
+            _uiState.update { it.copy(isAiProcessing = false) }
         }
     }
 
@@ -152,7 +178,7 @@ fun AddNoteScreen(
                 value = uiState.title,
                 onValueChange = viewModel::onTitleChanged,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Titolo") },
+                label = { Text(if (uiState.aiTitleSuggestion != null) "Titolo (suggerito da AI ✨)" else "Titolo") },
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
                 leadingIcon = { Icon(Icons.Filled.Title, null) }
@@ -172,12 +198,37 @@ fun AddNoteScreen(
                 leadingIcon = { Icon(Icons.Filled.Notes, null) }
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(12.dp))
+
+            // AI suggestion button
+            if (uiState.content.length >= 15) {
+                if (uiState.isAiProcessing) {
+                    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primaryContainer.copy(0.5f), modifier = Modifier.fillMaxWidth()) {
+                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(8.dp))
+                            Text("✨ Gemini sta analizzando...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = viewModel::requestAiSuggestions,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Text("✨")
+                        Spacer(Modifier.width(8.dp))
+                        Text("Suggerisci con Gemini AI")
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             Spacer(Modifier.height(16.dp))
 
             // Category
-            Text("Categoria", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text("Categoria" + if (uiState.aiTitleSuggestion != null) " (suggerita da AI ✨)" else "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 uiState.categories.forEach { cat ->

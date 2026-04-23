@@ -97,7 +97,18 @@ fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltVi
 
             if (!uiState.isRecording && uiState.audioFilePath != null) {
                 Spacer(Modifier.height(24.dp)); HorizontalDivider(); Spacer(Modifier.height(16.dp))
-                OutlinedTextField(uiState.title, viewModel::onTitleChanged, Modifier.fillMaxWidth(), label = { Text("Titolo") }, singleLine = true, shape = MaterialTheme.shapes.medium)
+                // AI processing indicator
+                if (uiState.isAiProcessing) {
+                    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.primaryContainer.copy(0.5f), modifier = Modifier.fillMaxWidth()) {
+                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(8.dp))
+                            Text("✨ Gemini sta analizzando la nota...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
+                OutlinedTextField(uiState.title, viewModel::onTitleChanged, Modifier.fillMaxWidth(), label = { Text(if (uiState.aiTitleSuggestion != null) "Titolo (suggerito da AI ✨)" else "Titolo") }, singleLine = true, shape = MaterialTheme.shapes.medium)
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(uiState.transcription, viewModel::onTranscriptionChanged, Modifier.fillMaxWidth().height(120.dp), label = { Text("Trascrizione") }, shape = MaterialTheme.shapes.medium)
                 Spacer(Modifier.height(16.dp))

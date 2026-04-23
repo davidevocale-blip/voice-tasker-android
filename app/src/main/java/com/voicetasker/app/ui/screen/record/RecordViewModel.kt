@@ -2,6 +2,7 @@ package com.voicetasker.app.ui.screen.record
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.voicetasker.app.data.ai.GeminiService
 import com.voicetasker.app.data.recorder.AudioRecorderImpl
 import com.voicetasker.app.data.recorder.SpeechTranscriberImpl
 import com.voicetasker.app.domain.model.Category
@@ -32,6 +33,8 @@ data class RecordUiState(
     val selectedReminders: Set<ReminderType> = emptySet(),
     val amplitudes: List<Int> = emptyList(),
     val isSaved: Boolean = false,
+    val isAiProcessing: Boolean = false,
+    val aiTitleSuggestion: String? = null,
     val errorMessage: String? = null
 )
 
@@ -42,7 +45,8 @@ class RecordViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
     private val categoryRepository: CategoryRepository,
     private val reminderRepository: ReminderRepository,
-    private val feedbackManager: FeedbackManager
+    private val feedbackManager: FeedbackManager,
+    private val geminiService: GeminiService
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(RecordUiState())
     val uiState: StateFlow<RecordUiState> = _uiState.asStateFlow()
@@ -72,6 +76,29 @@ class RecordViewModel @Inject constructor(
         val (path, duration) = audioRecorder.stopRecording()
         speechTranscriber.stopListening()
         _uiState.update { it.copy(isRecording = false, recordingDurationMs = duration, audioFilePath = path) }
+        // Launch AI processing
+        if (geminiService.isAvailable) {
+            viewModelScope.launch { processWithAi() }
+        }
+    }
+
+    private suspend fun processWithAi() {
+        _uiState.update { it.copy(isAiProcessing = true) }
+        val rawText = _uiState.value.transcription
+        // 1. Improve transcription
+        val improved = geminiService.improveTranscription(rawText)
+        _uiState.update { it.copy(transcription = improved) }
+        // 2. Generate title suggestion
+        val title = geminiService.generateTitle(improved)
+        _uiState.update { it.copy(aiTitleSuggestion = title, title = title) }
+        // 3. Suggest category
+        val catNames = _uiState.value.categories.map { it.name }
+        val suggested = geminiService.suggestCategory(improved, catNames)
+        if (suggested != null) {
+            val catId = _uiState.value.categories.find { it.name.equals(suggested, ignoreCase = true) }?.id
+            if (catId != null) _uiState.update { it.copy(selectedCategoryId = catId) }
+        }
+        _uiState.update { it.copy(isAiProcessing = false) }
     }
 
     fun onTitleChanged(t: String) { _uiState.update { it.copy(title = t) } }
