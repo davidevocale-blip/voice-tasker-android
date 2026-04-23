@@ -3,7 +3,6 @@ package com.voicetasker.app.ui.screen.record
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.voicetasker.app.data.ai.GeminiService
-import com.voicetasker.app.data.recorder.AudioRecorderImpl
 import com.voicetasker.app.data.recorder.SpeechTranscriberImpl
 import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.model.Note
@@ -13,6 +12,7 @@ import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
 import com.voicetasker.app.util.FeedbackManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,12 +26,11 @@ data class RecordUiState(
     val recordingDurationMs: Long = 0,
     val transcription: String = "",
     val title: String = "",
-    val audioFilePath: String? = null,
     val categories: List<Category> = emptyList(),
     val selectedCategoryId: Long? = null,
     val scheduledDate: Long = System.currentTimeMillis(),
     val selectedReminders: Set<ReminderType> = emptySet(),
-    val amplitudes: List<Int> = emptyList(),
+    val amplitudes: List<Float> = emptyList(),
     val isSaved: Boolean = false,
     val isAiProcessing: Boolean = false,
     val aiTitleSuggestion: String? = null,
@@ -40,7 +39,6 @@ data class RecordUiState(
 
 @HiltViewModel
 class RecordViewModel @Inject constructor(
-    private val audioRecorder: AudioRecorderImpl,
     private val speechTranscriber: SpeechTranscriberImpl,
     private val noteRepository: NoteRepository,
     private val categoryRepository: CategoryRepository,
@@ -50,22 +48,25 @@ class RecordViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(RecordUiState())
     val uiState: StateFlow<RecordUiState> = _uiState.asStateFlow()
+    private var timerJob: Job? = null
+    private var rmsJob: Job? = null
 
     init { viewModelScope.launch { categoryRepository.getAllCategories().collect { cats -> _uiState.update { it.copy(categories = cats) } } } }
 
     fun startRecording() {
-        _uiState.update { it.copy(isRecording = true, amplitudes = emptyList(), recordingDurationMs = 0, errorMessage = null) }
+        _uiState.update { it.copy(isRecording = true, amplitudes = emptyList(), recordingDurationMs = 0, transcription = "", errorMessage = null, title = "", aiTitleSuggestion = null) }
 
-        // Start speech transcription first
+        // Start speech recognition (uses mic exclusively - no MediaRecorder conflict)
         speechTranscriber.startListening()
+
+        // Collect transcription results
         viewModelScope.launch {
             speechTranscriber.state.collect { state ->
                 when (state) {
                     is SpeechTranscriberImpl.TranscriptionState.Result -> _uiState.update { it.copy(transcription = state.text) }
                     is SpeechTranscriberImpl.TranscriptionState.PartialResult -> _uiState.update { it.copy(transcription = state.text) }
                     is SpeechTranscriberImpl.TranscriptionState.Error -> {
-                        // Only show permission errors, ignore transient ones
-                        if (state.message.contains("Permessi")) {
+                        if (state.message.contains("Permessi") || state.message.contains("disponibile")) {
                             _uiState.update { it.copy(errorMessage = state.message) }
                         }
                     }
@@ -74,33 +75,31 @@ class RecordViewModel @Inject constructor(
             }
         }
 
-        // Start audio recorder after a short delay to avoid mic conflict
-        viewModelScope.launch {
-            delay(500)
-            val path = audioRecorder.startRecording()
-            if (path != null) {
-                _uiState.update { it.copy(audioFilePath = path) }
-                while (_uiState.value.isRecording) {
-                    val amp = audioRecorder.getMaxAmplitude()
-                    _uiState.update { it.copy(amplitudes = it.amplitudes + amp, recordingDurationMs = it.recordingDurationMs + 100) }
-                    delay(100)
+        // Collect RMS levels for waveform animation
+        rmsJob = viewModelScope.launch {
+            speechTranscriber.rmsLevel.collect { rms ->
+                if (_uiState.value.isRecording) {
+                    _uiState.update { it.copy(amplitudes = it.amplitudes + rms) }
                 }
-            } else {
-                // MediaRecorder failed - still keep transcription running, just track time
-                while (_uiState.value.isRecording) {
-                    _uiState.update { it.copy(recordingDurationMs = it.recordingDurationMs + 100) }
-                    delay(100)
-                }
+            }
+        }
+
+        // Timer
+        timerJob = viewModelScope.launch {
+            while (_uiState.value.isRecording) {
+                delay(100)
+                _uiState.update { it.copy(recordingDurationMs = it.recordingDurationMs + 100) }
             }
         }
     }
 
     fun stopRecording() {
-        val (path, duration) = audioRecorder.stopRecording()
         speechTranscriber.stopListening()
-        _uiState.update { it.copy(isRecording = false, recordingDurationMs = duration, audioFilePath = path) }
+        timerJob?.cancel()
+        rmsJob?.cancel()
+        _uiState.update { it.copy(isRecording = false) }
         // Launch AI processing
-        if (geminiService.isAvailable) {
+        if (geminiService.isAvailable && _uiState.value.transcription.isNotBlank()) {
             viewModelScope.launch { processWithAi() }
         }
     }
@@ -133,7 +132,7 @@ class RecordViewModel @Inject constructor(
     fun saveNote() {
         viewModelScope.launch {
             val s = _uiState.value; val now = System.currentTimeMillis()
-            val noteId = noteRepository.insertNote(Note(title = s.title.ifBlank { "Nota vocale" }, transcription = s.transcription, audioFilePath = s.audioFilePath ?: "", categoryId = s.selectedCategoryId ?: 1, scheduledDate = s.scheduledDate, createdAt = now, updatedAt = now, durationMs = s.recordingDurationMs))
+            val noteId = noteRepository.insertNote(Note(title = s.title.ifBlank { "Nota vocale" }, transcription = s.transcription, audioFilePath = "", categoryId = s.selectedCategoryId ?: 1, scheduledDate = s.scheduledDate, createdAt = now, updatedAt = now, durationMs = s.recordingDurationMs))
             s.selectedReminders.forEach { type -> reminderRepository.scheduleReminder(noteId, s.scheduledDate, type) }
             feedbackManager.play(FeedbackManager.FeedbackType.SAVE)
             _uiState.update { it.copy(isSaved = true) }

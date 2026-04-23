@@ -78,7 +78,7 @@ fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltVi
                 val barCount = 40; val barW = (size.width / barCount) * 0.6f; val sp = (size.width / barCount) * 0.4f
                 val amps = uiState.amplitudes.takeLast(barCount)
                 for (i in 0 until barCount) {
-                    val amp = if (i < amps.size && uiState.isRecording) (amps[i] / 32767f).coerceIn(0.05f, 1f) else 0.1f
+                    val amp = if (i < amps.size && uiState.isRecording) (amps[i] / 10f).coerceIn(0.05f, 1f) else 0.1f
                     val h = (amp * size.height).coerceIn(4f, size.height)
                     drawRoundRect(barColor.copy(0.3f + amp * 0.7f), Offset(i * (barW + sp) + sp / 2, (size.height - h) / 2), Size(barW, h), CornerRadius(barW / 2))
                 }
@@ -93,9 +93,9 @@ fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltVi
                 Icon(if (uiState.isRecording) Icons.Filled.Stop else Icons.Filled.Mic, "Registra", Modifier.size(28.dp), tint = Color.White)
             }
             Spacer(Modifier.height(8.dp))
-            Text(if (uiState.isRecording) "Tocca per fermare" else if (uiState.audioFilePath != null) "Completata" else "Tocca per registrare", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(if (uiState.isRecording) "Tocca per fermare" else if (uiState.transcription.isNotBlank()) "Completata" else "Tocca per registrare", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            if (!uiState.isRecording && uiState.audioFilePath != null) {
+            if (!uiState.isRecording && uiState.transcription.isNotBlank()) {
                 Spacer(Modifier.height(24.dp)); HorizontalDivider(); Spacer(Modifier.height(16.dp))
                 // AI processing indicator
                 if (uiState.isAiProcessing) {

@@ -26,6 +26,11 @@ class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val 
 
     private val _state = MutableStateFlow<TranscriptionState>(TranscriptionState.Idle)
     val state: StateFlow<TranscriptionState> = _state
+
+    // RMS amplitude for waveform visualization (0-10 scale from Android)
+    private val _rmsLevel = MutableStateFlow(0f)
+    val rmsLevel: StateFlow<Float> = _rmsLevel
+
     private var recognizer: SpeechRecognizer? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isListening = false
@@ -46,6 +51,7 @@ class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val 
         }
         isListening = true
         accumulatedText.clear()
+        _state.value = TranscriptionState.Idle
         mainHandler.post { startRecognizerInternal() }
     }
 
@@ -59,42 +65,31 @@ class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val 
                     _state.value = TranscriptionState.Listening
                 }
                 override fun onBeginningOfSpeech() {}
-                override fun onRmsChanged(rmsdB: Float) {}
+
+                override fun onRmsChanged(rmsdB: Float) {
+                    // rmsdB ranges from ~-2 to ~10
+                    _rmsLevel.value = rmsdB.coerceIn(0f, 10f)
+                }
+
                 override fun onBufferReceived(buffer: ByteArray?) {}
                 override fun onEndOfSpeech() {}
 
                 override fun onError(error: Int) {
-                    // Common non-fatal errors: restart listening
+                    _rmsLevel.value = 0f
                     when (error) {
                         SpeechRecognizer.ERROR_NO_MATCH,
                         SpeechRecognizer.ERROR_SPEECH_TIMEOUT,
                         SpeechRecognizer.ERROR_CLIENT -> {
-                            // Restart after a brief delay
-                            if (isListening) {
-                                mainHandler.postDelayed({ startRecognizerInternal() }, 500)
-                            }
+                            if (isListening) mainHandler.postDelayed({ startRecognizerInternal() }, 500)
                         }
                         SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> {
                             _state.value = TranscriptionState.Error("Permessi microfono non concessi")
                         }
-                        SpeechRecognizer.ERROR_NETWORK,
-                        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> {
-                            // Try offline, or just restart
-                            if (isListening) {
-                                mainHandler.postDelayed({ startRecognizerInternal() }, 1000)
-                            }
-                        }
                         SpeechRecognizer.ERROR_AUDIO -> {
-                            // Microphone busy (e.g., MediaRecorder using it)
-                            // Retry after longer delay
-                            if (isListening) {
-                                mainHandler.postDelayed({ startRecognizerInternal() }, 2000)
-                            }
+                            if (isListening) mainHandler.postDelayed({ startRecognizerInternal() }, 1500)
                         }
                         else -> {
-                            if (isListening) {
-                                mainHandler.postDelayed({ startRecognizerInternal() }, 1000)
-                            }
+                            if (isListening) mainHandler.postDelayed({ startRecognizerInternal() }, 1000)
                         }
                     }
                 }
@@ -106,20 +101,13 @@ class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val 
                         accumulatedText.append(text)
                         _state.value = TranscriptionState.Result(accumulatedText.toString())
                     }
-                    // Continue listening for more speech
-                    if (isListening) {
-                        mainHandler.postDelayed({ startRecognizerInternal() }, 300)
-                    }
+                    if (isListening) mainHandler.postDelayed({ startRecognizerInternal() }, 300)
                 }
 
                 override fun onPartialResults(partialResults: Bundle?) {
                     val text = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull() ?: ""
                     if (text.isNotBlank()) {
-                        val fullText = if (accumulatedText.isNotEmpty()) {
-                            "${accumulatedText}. $text"
-                        } else {
-                            text
-                        }
+                        val fullText = if (accumulatedText.isNotEmpty()) "${accumulatedText}. $text" else text
                         _state.value = TranscriptionState.PartialResult(fullText)
                     }
                 }
@@ -128,12 +116,13 @@ class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val 
             })
             recognizer?.startListening(createIntent())
         } catch (e: Exception) {
-            _state.value = TranscriptionState.Error("Errore avvio trascrizione: ${e.message}")
+            if (isListening) mainHandler.postDelayed({ startRecognizerInternal() }, 1000)
         }
     }
 
     fun stopListening() {
         isListening = false
+        _rmsLevel.value = 0f
         mainHandler.post {
             try { recognizer?.stopListening() } catch (_: Exception) {}
         }
@@ -141,6 +130,7 @@ class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val 
 
     fun destroy() {
         isListening = false
+        _rmsLevel.value = 0f
         mainHandler.post {
             try { recognizer?.destroy() } catch (_: Exception) {}
             recognizer = null
