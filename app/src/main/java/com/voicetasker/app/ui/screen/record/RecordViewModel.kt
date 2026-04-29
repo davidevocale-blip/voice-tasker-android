@@ -90,10 +90,13 @@ class RecordViewModel @Inject constructor(
     }
 
     fun stopRecording() {
+        if (!_uiState.value.isRecording) return
         speechTranscriber.stopListening()
         timerJob?.cancel(); rmsJob?.cancel()
         _uiState.update { it.copy(isRecording = false) }
-        if (geminiService.isAvailable && _uiState.value.transcription.isNotBlank()) {
+        // Launch AI processing if there's text
+        val text = _uiState.value.transcription
+        if (geminiService.isAvailable && text.isNotBlank()) {
             viewModelScope.launch { processWithAi() }
         }
     }

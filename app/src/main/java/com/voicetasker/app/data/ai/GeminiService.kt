@@ -41,23 +41,25 @@ class GeminiService @Inject constructor() {
      */
     suspend fun extractNoteMetadata(transcription: String, categoryNames: List<String>): NoteMetadata {
         if (transcription.isBlank() || model == null) return NoteMetadata(improvedText = transcription)
+        val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
         return try {
             val categories = categoryNames.joinToString(", ")
             val response = model!!.generateContent(
                 content {
-                    text("""Sei un assistente italiano per note vocali. Analizza il seguente testo trascritto da voce e restituisci un JSON con questi campi:
+                    text("""Sei un assistente italiano per note vocali. La data di oggi è $todayStr.
+Analizza il seguente testo trascritto da una nota vocale e restituisci un JSON con questi campi:
 
-1. "title": titolo sintetico (max 6 parole), descrittivo del contenuto
-2. "improvedText": il testo corretto con punteggiatura e grammatica corretta, mantenendo il significato originale
-3. "date": se nel testo c'è un riferimento a una data specifica (es. "domani", "lunedì", "il 15 marzo"), restituisci la data in formato YYYY-MM-DD. Se non c'è, restituisci null
-4. "time": se nel testo c'è un riferimento a un orario (es. "alle tre", "alle 15:30", "di mattina"), restituisci l'orario in formato HH:mm. Se non c'è, restituisci null
-5. "location": se nel testo c'è un riferimento a un luogo (es. "a Roma", "in ufficio", "dal dottore", "al parco"), restituisci il nome del luogo. Se non c'è, restituisci null
-6. "category": scegli la categoria più appropriata tra: $categories. Restituisci il nome esatto
+1. "title": titolo sintetico (massimo 3 parole), che descriva l'essenza della nota. Esempi: "Dentista", "Riunione Team", "Spesa", "Compleanno Marco"
+2. "improvedText": riscrivi il contenuto come una nota ordinata e chiara. Non limitarti a correggere la grammatica: sintetizza e riordina le informazioni in modo leggibile, eliminando ripetizioni e filler vocali. Mantieni tutti i dettagli importanti.
+3. "date": se c'è un riferimento temporale (es. "domani", "lunedì", "il 15 maggio", "la prossima settimana"), calcola la data esatta rispetto a oggi ($todayStr) e restituisci in formato YYYY-MM-DD. Se non c'è, restituisci null
+4. "time": se c'è un riferimento a un orario (es. "alle tre", "alle 15:30", "di mattina presto"), restituisci in formato HH:mm (24 ore). "di mattina" = 09:00, "di pomeriggio" = 15:00, "di sera" = 20:00. Se non c'è, restituisci null
+5. "location": se c'è un luogo (es. "a Roma", "in ufficio", "dal dottore", "ospedale San Raffaele"), restituisci il nome del luogo. Se non c'è, restituisci null
+6. "category": scegli la categoria più appropriata tra: $categories. Regole: se si parla di medici, visite, esami, farmaci → Salute. Se si parla di lavoro, riunioni, progetti, clienti → Lavoro. Se si parla di familiari, casa, figli → Famiglia. Restituisci il nome esatto della categoria.
 
-Rispondi SOLO con il JSON valido, niente altro. Esempio:
-{"title":"Riunione con il team","improvedText":"Domani alle 15 ho una riunione con il team di sviluppo in ufficio.","date":"2026-04-24","time":"15:00","location":"Ufficio","category":"Lavoro"}
+Rispondi SOLO con il JSON valido, nient'altro.
+Esempio: {"title":"Dentista","improvedText":"Appuntamento dal dentista per controllo annuale.","date":"2026-04-30","time":"10:30","location":"Studio dentistico","category":"Salute"}
 
-Testo da analizzare: $transcription""")
+Testo trascritto: $transcription""")
                 }
             )
             val jsonStr = response.text?.trim() ?: return NoteMetadata(improvedText = transcription)
