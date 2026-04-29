@@ -156,6 +156,7 @@ class AddNoteViewModel @Inject constructor(
 fun AddNoteScreen(onNavigateBack: () -> Unit, viewModel: AddNoteViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
     val df = SimpleDateFormat("dd MMMM yyyy", Locale.ITALIAN)
 
     LaunchedEffect(uiState.isSaved) { if (uiState.isSaved) onNavigateBack() }
@@ -217,10 +218,10 @@ fun AddNoteScreen(onNavigateBack: () -> Unit, viewModel: AddNoteViewModel = hilt
             Spacer(Modifier.height(12.dp))
 
             // Time
-            OutlinedTextField(uiState.noteTime, viewModel::onTimeChanged, Modifier.fillMaxWidth(),
-                label = { Text("Ora") }, singleLine = true, shape = MaterialTheme.shapes.medium,
-                leadingIcon = { Icon(Icons.Filled.AccessTime, null) },
-                placeholder = { Text("es. 15:30") })
+            OutlinedButton(onClick = { showTimePicker = true }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
+                Icon(Icons.Filled.AccessTime, null); Spacer(Modifier.width(8.dp))
+                Text(if (uiState.noteTime.isNotBlank()) "🕐 ${uiState.noteTime}" else "🕐 Imposta ora")
+            }
             Spacer(Modifier.height(12.dp))
 
             // Location
@@ -283,5 +284,18 @@ fun AddNoteScreen(onNavigateBack: () -> Unit, viewModel: AddNoteViewModel = hilt
             confirmButton = { TextButton(onClick = { dps.selectedDateMillis?.let { viewModel.onDateChanged(it) }; showDatePicker = false }) { Text("OK") } },
             dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Annulla") } }
         ) { DatePicker(state = dps) }
+    }
+
+    // Time picker
+    if (showTimePicker) {
+        val initialHour = uiState.noteTime.split(":").getOrNull(0)?.toIntOrNull() ?: 12
+        val initialMinute = uiState.noteTime.split(":").getOrNull(1)?.toIntOrNull() ?: 0
+        val tps = rememberTimePickerState(initialHour = initialHour, initialMinute = initialMinute, is24Hour = true)
+        AlertDialog(onDismissRequest = { showTimePicker = false },
+            title = { Text("Seleziona ora") },
+            text = { TimePicker(state = tps) },
+            confirmButton = { TextButton(onClick = { viewModel.onTimeChanged(String.format("%02d:%02d", tps.hour, tps.minute)); showTimePicker = false }) { Text("OK") } },
+            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text("Annulla") } }
+        )
     }
 }

@@ -66,6 +66,10 @@ class RecordViewModel @Inject constructor(
                 when (state) {
                     is SpeechTranscriberImpl.TranscriptionState.Result -> _uiState.update { it.copy(transcription = state.text) }
                     is SpeechTranscriberImpl.TranscriptionState.PartialResult -> _uiState.update { it.copy(transcription = state.text) }
+                    is SpeechTranscriberImpl.TranscriptionState.SilenceTimeout -> {
+                        // Auto-stop after 4 seconds of silence
+                        if (_uiState.value.isRecording) stopRecording()
+                    }
                     is SpeechTranscriberImpl.TranscriptionState.Error -> {
                         if (state.message.contains("Permessi") || state.message.contains("disponibile")) {
                             _uiState.update { it.copy(errorMessage = state.message) }

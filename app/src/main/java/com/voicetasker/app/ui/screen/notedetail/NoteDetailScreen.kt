@@ -33,6 +33,7 @@ fun NoteDetailScreen(onNavigateBack: () -> Unit, viewModel: NoteDetailViewModel 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
     val df = SimpleDateFormat("dd MMMM yyyy", Locale.ITALIAN)
     val context = LocalContext.current
     LaunchedEffect(uiState.isDeleted) { if (uiState.isDeleted) onNavigateBack() }
@@ -76,10 +77,10 @@ fun NoteDetailScreen(onNavigateBack: () -> Unit, viewModel: NoteDetailViewModel 
                 Spacer(Modifier.height(12.dp))
 
                 // Time
-                OutlinedTextField(uiState.editNoteTime, viewModel::onEditTimeChanged, Modifier.fillMaxWidth(),
-                    label = { Text("Ora") }, singleLine = true, shape = MaterialTheme.shapes.medium,
-                    leadingIcon = { Icon(Icons.Filled.AccessTime, null) },
-                    placeholder = { Text("es. 15:30") })
+                OutlinedButton(onClick = { showTimePicker = true }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
+                    Icon(Icons.Filled.AccessTime, null); Spacer(Modifier.width(8.dp))
+                    Text(if (uiState.editNoteTime.isNotBlank()) "🕐 ${uiState.editNoteTime}" else "🕐 Imposta ora")
+                }
                 Spacer(Modifier.height(12.dp))
 
                 // Location
@@ -223,6 +224,18 @@ fun NoteDetailScreen(onNavigateBack: () -> Unit, viewModel: NoteDetailViewModel 
             confirmButton = { TextButton(onClick = { dps.selectedDateMillis?.let { viewModel.onEditDateChanged(it) }; showDatePicker = false }) { Text("OK") } },
             dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Annulla") } }
         ) { DatePicker(state = dps) }
+    }
+
+    if (showTimePicker) {
+        val initialHour = uiState.editNoteTime.split(":").getOrNull(0)?.toIntOrNull() ?: 12
+        val initialMinute = uiState.editNoteTime.split(":").getOrNull(1)?.toIntOrNull() ?: 0
+        val tps = rememberTimePickerState(initialHour = initialHour, initialMinute = initialMinute, is24Hour = true)
+        AlertDialog(onDismissRequest = { showTimePicker = false },
+            title = { Text("Seleziona ora") },
+            text = { TimePicker(state = tps) },
+            confirmButton = { TextButton(onClick = { viewModel.onEditTimeChanged(String.format("%02d:%02d", tps.hour, tps.minute)); showTimePicker = false }) { Text("OK") } },
+            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text("Annulla") } }
+        )
     }
 }
 

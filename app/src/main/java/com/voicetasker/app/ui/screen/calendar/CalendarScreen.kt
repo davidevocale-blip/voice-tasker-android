@@ -10,11 +10,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,14 +60,31 @@ fun CalendarScreen(onNavigateToNoteDetail: (Long) -> Unit, viewModel: CalendarVi
                             Row(Modifier.fillMaxWidth()) {
                                 for (c in 0 until 7) {
                                     val idx = r * 7 + c
-                                    if (idx < startOffset || day > daysInMonth) { Box(Modifier.weight(1f).height(36.dp)) }
+                                    if (idx < startOffset || day > daysInMonth) { Box(Modifier.weight(1f).height(42.dp)) }
                                     else {
-                                        val d = day; val isToday = d == today.get(Calendar.DAY_OF_MONTH) && cm.get(Calendar.MONTH) == today.get(Calendar.MONTH) && cm.get(Calendar.YEAR) == today.get(Calendar.YEAR)
+                                        val d = day
+                                        val isToday = d == today.get(Calendar.DAY_OF_MONTH) && cm.get(Calendar.MONTH) == today.get(Calendar.MONTH) && cm.get(Calendar.YEAR) == today.get(Calendar.YEAR)
                                         val isSel = d == selCal.get(Calendar.DAY_OF_MONTH) && cm.get(Calendar.MONTH) == selCal.get(Calendar.MONTH) && cm.get(Calendar.YEAR) == selCal.get(Calendar.YEAR)
-                                        Box(Modifier.weight(1f).height(36.dp).clip(CircleShape).then(if (isSel) Modifier.background(MaterialTheme.colorScheme.primary, CircleShape) else if (isToday) Modifier.background(MaterialTheme.colorScheme.primaryContainer, CircleShape) else Modifier)
-                                            .clickable { val cal = Calendar.getInstance(); cal.set(cm.get(Calendar.YEAR), cm.get(Calendar.MONTH), d, 0, 0, 0); viewModel.onDateSelected(cal.timeInMillis) }, contentAlignment = Alignment.Center) {
-                                            Text(d.toString(), style = MaterialTheme.typography.bodySmall, fontWeight = if (isToday || isSel) FontWeight.Bold else FontWeight.Normal,
-                                                color = if (isSel) MaterialTheme.colorScheme.onPrimary else if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                                        val hasNotes = d in uiState.daysWithNotes
+
+                                        Box(Modifier.weight(1f).height(42.dp)
+                                            .clip(CircleShape)
+                                            .then(if (isSel) Modifier.background(MaterialTheme.colorScheme.primary, CircleShape) else if (isToday) Modifier.background(MaterialTheme.colorScheme.primaryContainer, CircleShape) else Modifier)
+                                            .clickable { val cal = Calendar.getInstance(); cal.set(cm.get(Calendar.YEAR), cm.get(Calendar.MONTH), d, 0, 0, 0); viewModel.onDateSelected(cal.timeInMillis) },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Text(d.toString(), style = MaterialTheme.typography.bodySmall, fontWeight = if (isToday || isSel) FontWeight.Bold else FontWeight.Normal,
+                                                    color = if (isSel) MaterialTheme.colorScheme.onPrimary else if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                                                // Dot indicator for days with notes
+                                                if (hasNotes) {
+                                                    Box(Modifier.size(5.dp).clip(CircleShape).background(
+                                                        if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
+                                                    ))
+                                                } else {
+                                                    Spacer(Modifier.height(5.dp))
+                                                }
+                                            }
                                         }
                                         day++
                                     }
@@ -75,20 +94,45 @@ fun CalendarScreen(onNavigateToNoteDetail: (Long) -> Unit, viewModel: CalendarVi
                     }
                 }
             }
-            item { Spacer(Modifier.height(16.dp)); Text("Note del giorno", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) }
-            if (uiState.notesForDate.isEmpty()) { item { Text("Nessun impegno", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp)) } }
-            else {
+            item {
+                Spacer(Modifier.height(16.dp))
+                Text("Note del giorno", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(4.dp))
+            }
+            if (uiState.notesForDate.isEmpty()) {
+                item { Text("Nessun impegno", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp)) }
+            } else {
                 items(uiState.notesForDate, key = { it.id }) { note ->
                     val catColor = viewModel.getCategoryColor(note.categoryId)
+                    val catName = viewModel.getCategoryName(note.categoryId)
                     Card(onClick = { onNavigateToNoteDetail(note.id) }, Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = MaterialTheme.shapes.medium) {
                         Row(Modifier.padding(12.dp)) {
-                            Box(Modifier.size(4.dp, 40.dp).clip(CircleShape).background(catColor))
+                            Box(Modifier.size(4.dp, 48.dp).clip(CircleShape).background(catColor))
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(note.title.ifBlank { "Nota vocale" }, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(note.transcription.take(80), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    // Category chip
+                                    Surface(shape = MaterialTheme.shapes.extraSmall, color = catColor.copy(0.15f)) {
+                                        Text(catName, Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = catColor)
+                                    }
+                                    // Time
+                                    if (note.noteTime.isNotBlank()) {
+                                        Spacer(Modifier.width(8.dp))
+                                        Icon(Icons.Filled.AccessTime, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Spacer(Modifier.width(2.dp))
+                                        Text(note.noteTime, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    // Location
+                                    if (note.location.isNotBlank()) {
+                                        Spacer(Modifier.width(8.dp))
+                                        Icon(Icons.Filled.LocationOn, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.error)
+                                        Spacer(Modifier.width(2.dp))
+                                        Text(note.location, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                    }
+                                }
                             }
-                            Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Filled.AccessTime, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.width(4.dp)); Text(df.format(Date(note.scheduledDate)), style = MaterialTheme.typography.labelSmall) }
                         }
                     }
                 }

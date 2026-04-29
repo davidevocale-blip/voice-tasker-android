@@ -12,6 +12,7 @@ class NoteRepositoryImpl @Inject constructor(private val dao: NoteDao) : NoteRep
     override fun getAllNotes(): Flow<List<Note>> = dao.getAllNotes().map { list -> list.map { it.toDomain() } }
     override fun getNoteById(noteId: Long): Flow<Note?> = dao.getNoteById(noteId).map { it?.toDomain() }
     override fun getNotesForDate(startOfDay: Long, endOfDay: Long): Flow<List<Note>> = dao.getNotesForDate(startOfDay, endOfDay).map { list -> list.map { it.toDomain() } }
+    override fun getDaysWithNotesInMonth(monthStart: Long, monthEnd: Long): Flow<List<Int>> = dao.getDaysWithNotesInMonth(monthStart, monthEnd)
     override suspend fun insertNote(note: Note): Long = dao.insertNote(note.toEntity())
     override suspend fun updateNote(note: Note) = dao.updateNote(note.toEntity())
     override suspend fun deleteNoteById(noteId: Long) = dao.deleteNoteById(noteId)

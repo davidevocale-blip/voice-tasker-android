@@ -18,6 +18,9 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE scheduledDate >= :startOfDay AND scheduledDate < :endOfDay ORDER BY scheduledDate ASC")
     fun getNotesForDate(startOfDay: Long, endOfDay: Long): Flow<List<NoteEntity>>
 
+    @Query("SELECT DISTINCT CAST((scheduledDate - :monthStart) / 86400000 AS INTEGER) + 1 FROM notes WHERE scheduledDate >= :monthStart AND scheduledDate < :monthEnd")
+    fun getDaysWithNotesInMonth(monthStart: Long, monthEnd: Long): Flow<List<Int>>
+
     @Query("SELECT * FROM notes WHERE categoryId = :categoryId ORDER BY scheduledDate ASC")
     fun getNotesByCategory(categoryId: Long): Flow<List<NoteEntity>>
 
