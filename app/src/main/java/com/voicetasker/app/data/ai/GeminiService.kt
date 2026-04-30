@@ -4,6 +4,7 @@ import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.generationConfig
 import com.voicetasker.app.BuildConfig
+import android.util.Log
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -63,8 +64,10 @@ Testo trascritto: $transcription""")
                 }
             )
             val jsonStr = response.text?.trim() ?: return NoteMetadata(improvedText = transcription)
+            Log.d("GeminiService", "Raw response: ${jsonStr.take(300)}")
             parseMetadataJson(jsonStr, transcription)
         } catch (e: Exception) {
+            Log.e("GeminiService", "extractNoteMetadata FAILED", e)
             NoteMetadata(improvedText = transcription)
         }
     }
@@ -86,6 +89,7 @@ Testo trascritto: $transcription""")
                 category = json.optString("category", "").takeIf { it.isNotBlank() && it != "null" }
             )
         } catch (e: Exception) {
+            Log.e("GeminiService", "JSON parse failed: ${jsonStr.take(200)}", e)
             NoteMetadata(improvedText = fallbackText)
         }
     }
