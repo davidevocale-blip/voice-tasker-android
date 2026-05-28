@@ -13,53 +13,52 @@
 </head>
 <body>
     <h1>Privacy Policy</h1>
-    <p class="last-updated">Ultimo aggiornamento: 6 maggio 2026</p>
+    <p class="last-updated">Ultimo aggiornamento: 28 maggio 2026</p>
 
     <p>Questa privacy policy è applicabile all'app <strong>VoiceTasker</strong> (di seguito denominata "Applicazione") per dispositivi mobili, sviluppata da Media2be S.r.l. (di seguito denominata "Fornitore del Servizio") come servizio Freemium. Questo servizio è fornito "COSÌ COM'È".</p>
 
-    <h2>Quali informazioni raccoglie l'Applicazione e come vengono utilizzate?</h2>
+    <h2>1. Quali informazioni raccoglie l'Applicazione e come vengono utilizzate?</h2>
     <p>L'Applicazione raccoglie le seguenti informazioni:</p>
     <ul>
-        <li><strong>Registrazioni vocali</strong>: L'app utilizza il microfono del dispositivo per trascrivere note vocali. Le registrazioni audio vengono elaborate in tempo reale sul dispositivo tramite il servizio di riconoscimento vocale di Android e <strong>non vengono salvate né memorizzate</strong>.</li>
-        <li><strong>Note e appuntamenti</strong>: Titolo, descrizione, data, ora, luogo e categoria delle note vengono salvati <strong>localmente sul dispositivo</strong> dell'utente.</li>
+        <li><strong>Dati di Autenticazione</strong>: L'Applicazione consente la registrazione tramite Email/Password o tramite Google Sign-In. Raccogliamo e conserviamo in modo sicuro il tuo indirizzo email e, nel caso di registrazione manuale, una password crittografata.</li>
+        <li><strong>Registrazioni vocali</strong>: L'app utilizza il microfono del dispositivo per catturare le note vocali. Le registrazioni audio vengono elaborate in cloud tramite API di intelligenza artificiale per generare la trascrizione. I file audio <strong>non vengono conservati sui server a tempo indeterminato</strong>, ma utilizzati esclusivamente nel momento della trascrizione.</li>
+        <li><strong>Note e Appuntamenti</strong>: Il testo trascritto, il titolo, le categorie e i promemoria da te creati vengono salvati sia localmente sul dispositivo sia nel nostro <strong>database in cloud sicuro (Supabase)</strong>. Questo ci permette di sincronizzare i tuoi dati su tutti i tuoi dispositivi collegati allo stesso account.</li>
     </ul>
 
-    <h2>Servizi di terze parti - Google Gemini API</h2>
-    <p>L'Applicazione utilizza il servizio <strong>Google Gemini API</strong> per elaborare le trascrizioni vocali ed estrarre automaticamente metadati (titolo, data, ora, luogo, categoria). Il testo trascritto viene inviato ai server di Google per l'elaborazione AI. Google elabora questi dati in conformità con la propria <a href="https://policies.google.com/privacy" target="_blank">Privacy Policy</a>.</p>
-    <p>Nessun dato audio viene inviato a server esterni; solo il testo trascritto viene elaborato dal servizio AI.</p>
-
-    <h2>Quali autorizzazioni richiede l'Applicazione?</h2>
+    <h2>2. Servizi di terze parti</h2>
+    <p>L'Applicazione si affida a fornitori leader del settore per garantire prestazioni e sicurezza. Nessun dato viene venduto a terzi. Condividiamo i dati strettamente necessari con i seguenti partner:</p>
     <ul>
-        <li><strong>Microfono (RECORD_AUDIO)</strong>: Necessario per la trascrizione vocale delle note.</li>
-        <li><strong>Internet</strong>: Necessario per comunicare con il servizio Google Gemini API.</li>
-        <li><strong>Notifiche</strong>: Per inviare promemoria sugli appuntamenti.</li>
+        <li><strong>Google Gemini API:</strong> Utilizzato per elaborare l'audio ed estrarre intelligentemente il testo e il contesto. I dati sono trattati secondo i rigidi standard Enterprise di Google Cloud. <a href="https://policies.google.com/privacy" target="_blank">Privacy Policy di Google</a>.</li>
+        <li><strong>Supabase:</strong> Fornitore del servizio di autenticazione e del database cloud. Utilizziamo Supabase per mantenere crittografati i tuoi accessi e proteggere i testi delle tue note salvate in cloud.</li>
+        <li><strong>Google Play Billing:</strong> Utilizzato per gestire l'abbonamento alla versione Premium. L'Applicazione non ha accesso diretto ai dati della tua carta di credito, che sono gestiti interamente e in modo sicuro da Google Play.</li>
     </ul>
 
-    <h2>I dati vengono condivisi con terze parti?</h2>
-    <p>Il Fornitore del Servizio non condivide i dati personali con terze parti, ad eccezione del testo trascritto inviato a Google Gemini API per l'elaborazione, come descritto sopra.</p>
+    <h2>3. Quali autorizzazioni richiede l'Applicazione?</h2>
+    <ul>
+        <li><strong>Microfono (RECORD_AUDIO)</strong>: Necessario per registrare l'audio da trascrivere.</li>
+        <li><strong>Internet</strong>: Necessario per comunicare con i servizi cloud, per l'autenticazione, la sincronizzazione delle note e l'invio dell'audio all'Intelligenza Artificiale.</li>
+        <li><strong>Notifiche</strong>: Per inviarti promemoria sugli appuntamenti impostati.</li>
+    </ul>
 
-    <h2>Dove vengono salvati i dati?</h2>
-    <p>Tutti i dati delle note (titolo, descrizione, data, ora, luogo, categoria) vengono salvati <strong>esclusivamente sul dispositivo dell'utente</strong> in un database locale. Non vengono trasmessi a server esterni per la memorizzazione.</p>
-
-    <h2>Diritti dell'utente (GDPR)</h2>
+    <h2>4. Diritti dell'utente (GDPR)</h2>
     <p>In conformità con il Regolamento Generale sulla Protezione dei Dati (GDPR), l'utente ha il diritto di:</p>
     <ul>
-        <li>Accedere ai propri dati personali</li>
-        <li>Rettificare i propri dati</li>
-        <li>Cancellare i propri dati (eliminando le note dall'app o disinstallando l'app)</li>
-        <li>Opporsi al trattamento dei dati</li>
+        <li>Accedere ai propri dati personali.</li>
+        <li>Rettificare i propri dati se inesatti.</li>
+        <li><strong>Diritto all'Oblio:</strong> Cancellare i propri dati. Puoi richiedere la cancellazione completa del tuo account e di tutti i dati ad esso associati contattandoci direttamente all'indirizzo email indicato sotto.</li>
+        <li>Opporsi al trattamento dei dati.</li>
     </ul>
 
-    <h2>Sicurezza</h2>
-    <p>Il Fornitore del Servizio si impegna a proteggere la riservatezza delle informazioni dell'utente. I dati sono salvati localmente sul dispositivo e protetti dai meccanismi di sicurezza del sistema operativo Android.</p>
+    <h2>5. Sicurezza</h2>
+    <p>Il Fornitore del Servizio si impegna a proteggere la riservatezza delle tue informazioni. Utilizziamo connessioni sicure HTTPS per il trasferimento dei dati al cloud e ci affidiamo a partner infrastrutturali che garantiscono elevati standard di sicurezza (crittografia a riposo e in transito).</p>
 
-    <h2>Minori</h2>
+    <h2>6. Minori</h2>
     <p>L'Applicazione non è rivolta a minori di 13 anni e non raccoglie consapevolmente dati da minori.</p>
 
-    <h2>Modifiche alla Privacy Policy</h2>
-    <p>Questa Privacy Policy potrebbe essere aggiornata periodicamente. L'utente è invitato a consultare regolarmente questa pagina.</p>
+    <h2>7. Modifiche alla Privacy Policy</h2>
+    <p>Questa Privacy Policy potrebbe essere aggiornata periodicamente per riflettere nuove funzionalità dell'Applicazione. L'utente è invitato a consultare regolarmente questa pagina.</p>
 
-    <h2>Contatti</h2>
-    <p>Per domande sulla privacy, contattare: <a href="mailto:info@media2be.it">info@media2be.it</a></p>
+    <h2>8. Contatti</h2>
+    <p>Per domande sulla privacy, richieste di cancellazione account o assistenza, contattare: <a href="mailto:info@media2be.it">info@media2be.it</a></p>
 </body>
 </html>
