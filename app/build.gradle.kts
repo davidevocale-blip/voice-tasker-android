@@ -7,6 +7,35 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = keystorePropertiesFile
+    .takeIf { it.isFile }
+    ?.readLines()
+    ?.mapNotNull { line ->
+        val trimmed = line.trim()
+        if (trimmed.isEmpty() || trimmed.startsWith("#") || "=" !in trimmed) {
+            null
+        } else {
+            trimmed.substringBefore("=").trim() to trimmed.substringAfter("=").trim()
+        }
+    }
+    ?.toMap()
+    .orEmpty()
+
+val releaseStoreFile = keystoreProperties["storeFile"]
+    ?.takeIf { it.isNotBlank() }
+    ?.let(rootProject::file)
+val hasReleaseSigningConfig = releaseStoreFile?.isFile == true &&
+    listOf("storePassword", "keyAlias", "keyPassword")
+        .all { !keystoreProperties[it].isNullOrBlank() }
+
+if (!hasReleaseSigningConfig) {
+    logger.lifecycle(
+        "Release signing is not configured; release builds will remain unsigned. " +
+            "Create keystore.properties from keystore.properties.example."
+    )
+}
+
 android {
     namespace = "com.voicetasker.app"
     compileSdk = 36
@@ -34,18 +63,22 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file("C:\\Users\\Davide\\Desktop\\voicetasker-release.jks")
-            storePassword = "VoiceTasker2026!"
-            keyAlias = "voicetasker"
-            keyPassword = "VoiceTasker2026!"
+        if (hasReleaseSigningConfig) {
+            create("release") {
+                storeFile = releaseStoreFile!!
+                storePassword = keystoreProperties.getValue("storePassword")
+                keyAlias = keystoreProperties.getValue("keyAlias")
+                keyPassword = keystoreProperties.getValue("keyPassword")
+            }
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
