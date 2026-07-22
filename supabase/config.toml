@@ -1,0 +1,4 @@
+project_id = "voice-tasker"
+
+[functions.get-gemini-key]
+verify_jwt = true
