@@ -44,6 +44,13 @@ fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltVi
 
     LaunchedEffect(uiState.isSaved) { if (uiState.isSaved) onNavigateBack() }
 
+    // Auto-stop recording when hitting the duration limit
+    LaunchedEffect(uiState.recordingDurationMs, uiState.isRecording) {
+        if (uiState.isRecording && uiState.recordingDurationMs >= uiState.maxDurationMs) {
+            viewModel.stopRecording()
+        }
+    }
+
     fun onRecordClick() {
         if (uiState.isRecording) { viewModel.stopRecording() }
         else if (hasPermission) { viewModel.startRecording() }
@@ -74,6 +81,13 @@ fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltVi
             Spacer(Modifier.height(16.dp))
             val min = (uiState.recordingDurationMs / 60000).toInt(); val sec = ((uiState.recordingDurationMs % 60000) / 1000).toInt()
             Text(String.format("%02d:%02d", min, sec), style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Light)
+            // Max duration label
+            val maxMin = (uiState.maxDurationMs / 60000).toInt()
+            Text(
+                if (uiState.isPremium) "Max ${maxMin} min" else "Max ${maxMin} min (Free)",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (uiState.recordingDurationMs >= uiState.maxDurationMs * 0.8) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(Modifier.height(24.dp))
 
             // Record button

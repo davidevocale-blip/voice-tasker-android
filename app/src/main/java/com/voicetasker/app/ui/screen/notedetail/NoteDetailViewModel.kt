@@ -30,7 +30,8 @@ data class NoteDetailUiState(
     val editLocation: String = "",
     val editNoteTime: String = "",
     val editScheduledDate: Long = 0,
-    val isDeleted: Boolean = false
+    val isDeleted: Boolean = false,
+    val isPremium: Boolean = false
 )
 
 @HiltViewModel
@@ -39,7 +40,8 @@ class NoteDetailViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
     private val categoryRepository: CategoryRepository,
     private val reminderRepository: ReminderRepository,
-    private val feedbackManager: FeedbackManager
+    private val feedbackManager: FeedbackManager,
+    private val billingManager: com.voicetasker.app.data.billing.BillingManager
 ) : ViewModel() {
     private val noteId: Long = savedStateHandle.get<Long>("noteId") ?: 0L
     private val _uiState = MutableStateFlow(NoteDetailUiState())
@@ -49,6 +51,7 @@ class NoteDetailViewModel @Inject constructor(
         viewModelScope.launch { noteRepository.getNoteById(noteId).collect { n -> n?.let { _uiState.update { s -> s.copy(note = n) } } } }
         viewModelScope.launch { categoryRepository.getAllCategories().collect { cats -> _uiState.update { it.copy(categories = cats) } } }
         viewModelScope.launch { reminderRepository.getRemindersForNote(noteId).collect { rems -> _uiState.update { it.copy(reminders = rems) } } }
+        viewModelScope.launch { billingManager.state.collect { billing -> _uiState.update { it.copy(isPremium = billing.isPremium) } } }
     }
 
     fun startEditing() {

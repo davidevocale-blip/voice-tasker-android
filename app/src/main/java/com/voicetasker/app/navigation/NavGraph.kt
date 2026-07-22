@@ -33,7 +33,9 @@ import com.voicetasker.app.ui.screen.addnote.AddNoteScreen
 import com.voicetasker.app.ui.screen.calendar.CalendarScreen
 import com.voicetasker.app.ui.screen.categories.CategoriesScreen
 import com.voicetasker.app.ui.screen.home.HomeScreen
+import com.voicetasker.app.ui.screen.login.LoginScreen
 import com.voicetasker.app.ui.screen.notedetail.NoteDetailScreen
+import com.voicetasker.app.ui.screen.paywall.PaywallScreen
 import com.voicetasker.app.ui.screen.record.RecordScreen
 import com.voicetasker.app.ui.screen.settings.SettingsScreen
 
@@ -45,6 +47,8 @@ sealed class Screen(val route: String) {
     data object AddNote : Screen("add_note")
     data object Categories : Screen("categories")
     data object Settings : Screen("settings")
+    data object Login : Screen("login")
+    data object Paywall : Screen("paywall/{trigger}") { fun createRoute(trigger: String) = "paywall/$trigger" }
 }
 
 data class BottomNavItem(val screen: Screen, val label: String, val selected: ImageVector, val unselected: ImageVector)
@@ -75,13 +79,49 @@ fun NavGraph() {
         }
     }) { innerPadding ->
         NavHost(navController, Screen.Home.route, Modifier.padding(innerPadding)) {
-            composable(Screen.Home.route) { HomeScreen(onNavigateToRecord = { navController.navigate(Screen.Record.route) }, onNavigateToAddNote = { navController.navigate(Screen.AddNote.route) }, onNavigateToNoteDetail = { navController.navigate(Screen.NoteDetail.createRoute(it)) }, onNavigateToSettings = { navController.navigate(Screen.Settings.route) }) }
+            composable(Screen.Home.route) {
+                HomeScreen(
+                    onNavigateToRecord = { navController.navigate(Screen.Record.route) },
+                    onNavigateToAddNote = { navController.navigate(Screen.AddNote.route) },
+                    onNavigateToNoteDetail = { navController.navigate(Screen.NoteDetail.createRoute(it)) },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                    onNavigateToLogin = { navController.navigate(Screen.Login.route) },
+                    onNavigateToPaywall = { trigger -> navController.navigate(Screen.Paywall.createRoute(trigger)) }
+                )
+            }
             composable(Screen.Record.route) { RecordScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.Calendar.route) { CalendarScreen(onNavigateToNoteDetail = { navController.navigate(Screen.NoteDetail.createRoute(it)) }) }
-            composable(Screen.NoteDetail.route, arguments = listOf(navArgument("noteId") { type = NavType.LongType })) { NoteDetailScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.NoteDetail.route, arguments = listOf(navArgument("noteId") { type = NavType.LongType })) {
+                NoteDetailScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToPaywall = { trigger -> navController.navigate(Screen.Paywall.createRoute(trigger)) }
+                )
+            }
             composable(Screen.AddNote.route) { AddNoteScreen(onNavigateBack = { navController.popBackStack() }) }
             composable(Screen.Categories.route) { CategoriesScreen() }
-            composable(Screen.Settings.route) { SettingsScreen() }
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    onNavigateToLogin = { navController.navigate(Screen.Login.route) },
+                    onNavigateToPaywall = { navController.navigate(Screen.Paywall.createRoute("upgrade")) }
+                )
+            }
+            composable(Screen.Login.route) {
+                LoginScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onLoginSuccess = { navController.popBackStack() }
+                )
+            }
+            composable(
+                Screen.Paywall.route,
+                arguments = listOf(navArgument("trigger") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val trigger = backStackEntry.arguments?.getString("trigger") ?: "upgrade"
+                PaywallScreen(
+                    trigger = trigger,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToLogin = { navController.navigate(Screen.Login.route) }
+                )
+            }
         }
     }
 }

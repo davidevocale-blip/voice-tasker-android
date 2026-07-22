@@ -88,7 +88,6 @@ class AddNoteViewModel @Inject constructor(
     }
 
     fun requestAiSuggestions() {
-        if (!geminiService.isAvailable) return
         val content = _uiState.value.content
         if (content.length < 15) return
         viewModelScope.launch {

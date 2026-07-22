@@ -29,7 +29,7 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NoteDetailScreen(onNavigateBack: () -> Unit, viewModel: NoteDetailViewModel = hiltViewModel()) {
+fun NoteDetailScreen(onNavigateBack: () -> Unit, onNavigateToPaywall: (String) -> Unit = {}, viewModel: NoteDetailViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -203,10 +203,30 @@ fun NoteDetailScreen(onNavigateBack: () -> Unit, viewModel: NoteDetailViewModel 
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ReminderType.entries.filter { type -> uiState.reminders.none { it.type == type } }.forEach { type ->
-                        AssistChip(onClick = { viewModel.addReminder(type) }, label = { Text(type.label, style = MaterialTheme.typography.labelSmall) },
-                            leadingIcon = { Icon(Icons.Filled.Add, null, Modifier.size(14.dp)) })
+                if (uiState.isPremium) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ReminderType.entries.filter { type -> uiState.reminders.none { it.type == type } }.forEach { type ->
+                            AssistChip(onClick = { viewModel.addReminder(type) }, label = { Text(type.label, style = MaterialTheme.typography.labelSmall) },
+                                leadingIcon = { Icon(Icons.Filled.Add, null, Modifier.size(14.dp)) })
+                        }
+                    }
+                } else {
+                    // Free user — show premium prompt for reminders
+                    Surface(
+                        onClick = { onNavigateToPaywall("reminder") },
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(0.5f)
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.Lock, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Sblocca promemoria con Premium", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.weight(1f))
+                            Icon(Icons.Filled.Star, null, Modifier.size(16.dp), tint = com.voicetasker.app.ui.theme.Gold40)
+                        }
                     }
                 }
             }

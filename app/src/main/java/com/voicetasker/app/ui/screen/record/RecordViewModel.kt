@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.voicetasker.app.data.ai.GeminiService
+import com.voicetasker.app.data.billing.BillingManager
 import com.voicetasker.app.data.recorder.SpeechTranscriberImpl
 import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.model.Note
@@ -40,7 +41,9 @@ data class RecordUiState(
     val location: String = "",
     val noteTime: String = "",
     val noteDate: String = "",
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isPremium: Boolean = false,
+    val maxDurationMs: Long = 60_000L // 1 min free, 10 min premium
 )
 
 @HiltViewModel
@@ -50,7 +53,8 @@ class RecordViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val reminderRepository: ReminderRepository,
     private val feedbackManager: FeedbackManager,
-    private val geminiService: GeminiService
+    private val geminiService: GeminiService,
+    private val billingManager: BillingManager
 ) : ViewModel() {
 
     companion object {
@@ -67,6 +71,15 @@ class RecordViewModel @Inject constructor(
         viewModelScope.launch {
             categoryRepository.getAllCategories().collect { cats ->
                 _uiState.update { it.copy(categories = cats) }
+            }
+        }
+        viewModelScope.launch {
+            billingManager.state.collect { billing ->
+                val premium = billing.isPremium
+                _uiState.update { it.copy(
+                    isPremium = premium,
+                    maxDurationMs = if (premium) 600_000L else 60_000L
+                ) }
             }
         }
     }
@@ -146,9 +159,9 @@ class RecordViewModel @Inject constructor(
         _uiState.update { it.copy(isRecording = false) }
 
         val transcription = _uiState.value.transcription
-        Log.d(TAG, "Gemini available=${geminiService.isAvailable}, text='${transcription.take(80)}'")
+        Log.d(TAG, "Text='${transcription.take(80)}'")
 
-        if (geminiService.isAvailable && transcription.isNotBlank()) {
+        if (transcription.isNotBlank()) {
             viewModelScope.launch {
                 processWithAi(transcription)
             }
@@ -166,14 +179,16 @@ class RecordViewModel @Inject constructor(
             Log.d(TAG, "AI result: title='${metadata.title}', date=${metadata.date}, time=${metadata.time}, location=${metadata.location}, category=${metadata.category}")
 
             _uiState.update { s ->
+                val errorMsg = if (metadata.improvedText.startsWith("ERRORE:")) metadata.improvedText else null
                 var updated = s.copy(
                     title = metadata.title.ifBlank { s.title },
-                    transcription = metadata.improvedText.ifBlank { rawTranscription },
+                    transcription = if (errorMsg == null) metadata.improvedText.ifBlank { rawTranscription } else rawTranscription,
                     aiTitleSuggestion = metadata.title.takeIf { it.isNotBlank() },
                     location = metadata.location ?: "",
                     noteTime = metadata.time ?: "",
                     noteDate = metadata.date ?: "",
-                    isAiProcessing = false
+                    isAiProcessing = false,
+                    errorMessage = errorMsg
                 )
                 // Set scheduled date
                 if (metadata.date != null) {

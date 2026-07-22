@@ -17,6 +17,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { VoiceTaskerTheme { Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { NavGraph() } } }
+        setContent {
+            VoiceTaskerTheme {
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    NavGraph()
+                }
+            }
+        }
     }
 }

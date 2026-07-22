@@ -1,11 +1,16 @@
 package com.voicetasker.app.data.ai
 
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.content
-import com.google.ai.client.generativeai.type.generationConfig
-import com.voicetasker.app.BuildConfig
 import android.util.Log
+import com.voicetasker.app.data.remote.ApiKeyProvider
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,35 +24,89 @@ data class NoteMetadata(
 )
 
 @Singleton
-class GeminiService @Inject constructor() {
-
-    private val model: GenerativeModel? by lazy {
-        val key = BuildConfig.GEMINI_API_KEY
-        if (key.isBlank()) null
-        else GenerativeModel(
-            modelName = "gemini-2.0-flash",
-            apiKey = key,
-            generationConfig = generationConfig {
-                temperature = 0.3f
-                maxOutputTokens = 1024
-            }
-        )
+class GeminiService @Inject constructor(
+    private val apiKeyProvider: ApiKeyProvider
+) {
+    companion object {
+        private const val TAG = "GeminiService"
+        private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
     }
 
-    val isAvailable: Boolean get() = BuildConfig.GEMINI_API_KEY.isNotBlank()
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
+
+    private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
+
+    /**
+     * Calls the Gemini API directly via OkHttp (no Ktor dependency).
+     */
+    private suspend fun generateContent(prompt: String, apiKey: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val requestJson = JSONObject().apply {
+                put("contents", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("parts", JSONArray().apply {
+                            put(JSONObject().apply {
+                                put("text", prompt)
+                            })
+                        })
+                    })
+                })
+                put("generationConfig", JSONObject().apply {
+                    put("temperature", 0.3)
+                    put("maxOutputTokens", 1024)
+                })
+            }
+
+            val request = Request.Builder()
+                .url("$BASE_URL?key=$apiKey")
+                .post(requestJson.toString().toRequestBody(jsonMediaType))
+                .build()
+
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) {
+                val errorBody = response.body?.string() ?: ""
+                Log.e(TAG, "API call failed: ${response.code} ${response.message} $errorBody")
+                if (response.code == 429) {
+                    return@withContext "ERRORE: Quota API Gemini esaurita (Troppe richieste)."
+                }
+                return@withContext "ERRORE: Problema con l'API Gemini (Codice ${response.code}). Dettaglio: $errorBody"
+            }
+
+            val body = response.body?.string() ?: return@withContext "ERRORE: Risposta API vuota."
+            val json = JSONObject(body)
+            val candidates = json.optJSONArray("candidates") ?: return@withContext null
+            val firstCandidate = candidates.optJSONObject(0) ?: return@withContext null
+            val content = firstCandidate.optJSONObject("content") ?: return@withContext null
+            val parts = content.optJSONArray("parts") ?: return@withContext null
+            val firstPart = parts.optJSONObject(0) ?: return@withContext null
+            firstPart.optString("text", null)
+        } catch (e: Exception) {
+            Log.e(TAG, "generateContent failed", e)
+            null
+        }
+    }
 
     /**
      * Estrae tutti i metadati dalla trascrizione in un'unica chiamata API.
      * Restituisce titolo, testo migliorato, data, ora, luogo e categoria suggerita.
      */
     suspend fun extractNoteMetadata(transcription: String, categoryNames: List<String>): NoteMetadata {
-        if (transcription.isBlank() || model == null) return NoteMetadata(improvedText = transcription)
+        if (transcription.isBlank()) return NoteMetadata(improvedText = transcription)
+
+        val apiKey = apiKeyProvider.getGeminiApiKey()
+        if (apiKey.isNullOrBlank()) {
+            Log.w(TAG, "No Gemini API key available")
+            return NoteMetadata(improvedText = transcription)
+        }
+
         val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
         return try {
             val categories = categoryNames.joinToString(", ")
-            val response = model!!.generateContent(
-                content {
-                    text("""Sei un assistente italiano per note vocali. La data di oggi è $todayStr.
+            val prompt = """Sei un assistente italiano per note vocali. La data di oggi è $todayStr.
 Analizza il seguente testo trascritto da una nota vocale e restituisci un JSON con questi campi:
 
 1. "title": titolo sintetico (massimo 3 parole), che descriva l'essenza della nota. Esempi: "Dentista", "Riunione Team", "Spesa", "Compleanno Marco"
@@ -60,14 +119,18 @@ Analizza il seguente testo trascritto da una nota vocale e restituisci un JSON c
 Rispondi SOLO con il JSON valido, nient'altro.
 Esempio: {"title":"Dentista","improvedText":"Appuntamento dal dentista per controllo annuale.","date":"2026-04-30","time":"10:30","location":"Studio dentistico","category":"Salute"}
 
-Testo trascritto: $transcription""")
-                }
-            )
-            val jsonStr = response.text?.trim() ?: return NoteMetadata(improvedText = transcription)
-            Log.d("GeminiService", "Raw response: ${jsonStr.take(300)}")
-            parseMetadataJson(jsonStr, transcription)
+Testo trascritto: $transcription"""
+
+            val responseText = generateContent(prompt, apiKey)
+            if (responseText == null) return NoteMetadata(improvedText = transcription)
+            if (responseText.startsWith("ERRORE:")) {
+                return NoteMetadata(improvedText = responseText)
+            }
+
+            Log.d(TAG, "Raw response: ${responseText.take(300)}")
+            parseMetadataJson(responseText.trim(), transcription)
         } catch (e: Exception) {
-            Log.e("GeminiService", "extractNoteMetadata FAILED", e)
+            Log.e(TAG, "extractNoteMetadata FAILED", e)
             NoteMetadata(improvedText = transcription)
         }
     }
@@ -89,7 +152,7 @@ Testo trascritto: $transcription""")
                 category = json.optString("category", "").takeIf { it.isNotBlank() && it != "null" }
             )
         } catch (e: Exception) {
-            Log.e("GeminiService", "JSON parse failed: ${jsonStr.take(200)}", e)
+            Log.e(TAG, "JSON parse failed: ${jsonStr.take(200)}", e)
             NoteMetadata(improvedText = fallbackText)
         }
     }
@@ -100,4 +163,9 @@ Testo trascritto: $transcription""")
     suspend fun suggestForManualNote(content: String, categoryNames: List<String>): NoteMetadata {
         return extractNoteMetadata(content, categoryNames)
     }
+
+    /**
+     * Reset (kept for API compatibility).
+     */
+    fun reset() { /* no-op with OkHttp */ }
 }

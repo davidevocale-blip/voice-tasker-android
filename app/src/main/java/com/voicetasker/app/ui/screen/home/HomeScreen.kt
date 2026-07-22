@@ -75,6 +75,8 @@ fun HomeScreen(
     onNavigateToAddNote: () -> Unit,
     onNavigateToNoteDetail: (Long) -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToLogin: () -> Unit = {},
+    onNavigateToPaywall: (String) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -82,8 +84,14 @@ fun HomeScreen(
         topBar = { TopAppBar(title = { Text("VoiceTasker", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SmallFloatingActionButton(onClick = onNavigateToAddNote, containerColor = MaterialTheme.colorScheme.secondaryContainer) { Icon(Icons.Filled.Edit, "Nota manuale", tint = MaterialTheme.colorScheme.onSecondaryContainer) }
-                FloatingActionButton(onClick = onNavigateToRecord, containerColor = MaterialTheme.colorScheme.primary) { Icon(Icons.Filled.Mic, "Registra", tint = Color.White) }
+                SmallFloatingActionButton(
+                    onClick = { if (uiState.isPremium || uiState.freeNotesRemaining > 0) onNavigateToAddNote() else onNavigateToPaywall("note_limit") },
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                ) { Icon(Icons.Filled.Edit, "Nota manuale", tint = MaterialTheme.colorScheme.onSecondaryContainer) }
+                FloatingActionButton(
+                    onClick = { if (uiState.isPremium || uiState.freeNotesRemaining > 0) onNavigateToRecord() else onNavigateToPaywall("note_limit") },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) { Icon(Icons.Filled.Mic, "Registra", tint = Color.White) }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -100,7 +108,7 @@ fun HomeScreen(
                                 Text("Passa a Premium", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
                                 Text("${uiState.freeNotesRemaining} note gratuite rimanenti", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(0.8f))
                             }
-                            Button(onClick = onNavigateToSettings, colors = ButtonDefaults.buttonColors(containerColor = Gold40, contentColor = Purple40), shape = MaterialTheme.shapes.small) { Text("Upgrade", fontWeight = FontWeight.Bold) }
+                            Button(onClick = { onNavigateToPaywall("upgrade") }, colors = ButtonDefaults.buttonColors(containerColor = Gold40, contentColor = Purple40), shape = MaterialTheme.shapes.small) { Text("Upgrade", fontWeight = FontWeight.Bold) }
                         }
                     }
                 }
