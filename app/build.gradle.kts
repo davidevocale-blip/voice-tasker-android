@@ -59,7 +59,6 @@ android {
         buildConfigField("String", "SUPABASE_URL", "\"${readProp("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${readProp("SUPABASE_ANON_KEY")}\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${readProp("GOOGLE_WEB_CLIENT_ID")}\"")
-        buildConfigField("String", "GEMINI_API_KEY", "\"${readProp("GEMINI_API_KEY")}\"")
     }
 
     signingConfigs {
@@ -136,7 +135,6 @@ dependencies {
     // Core
     implementation(libs.core.ktx)
 
-    // Gemini AI (using OkHttp directly, no SDK needed)
     // Supabase
     implementation(platform(libs.supabase.bom))
     implementation(libs.supabase.auth)

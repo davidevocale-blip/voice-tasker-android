@@ -20,7 +20,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import com.voicetasker.app.data.ai.GeminiService
+import com.voicetasker.app.domain.ai.NoteAiProcessor
+import com.voicetasker.app.domain.ai.NoteAiResult
+import com.voicetasker.app.domain.ai.toFallback
 import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.model.Note
 import com.voicetasker.app.domain.model.ReminderType
@@ -35,6 +37,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.*
 import javax.inject.Inject
 
@@ -51,7 +54,9 @@ data class AddNoteUiState(
     val isAiProcessing: Boolean = false,
     val aiTitleSuggestion: String? = null,
     val location: String = "",
-    val noteTime: String = ""
+    val noteTime: String = "",
+    val aiErrorMessage: String? = null,
+    val authenticationRequired: Boolean = false
 )
 
 @HiltViewModel
@@ -60,7 +65,7 @@ class AddNoteViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val reminderRepository: ReminderRepository,
     private val feedbackManager: FeedbackManager,
-    private val geminiService: GeminiService
+    private val noteAiProcessor: NoteAiProcessor
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AddNoteUiState())
     val uiState: StateFlow<AddNoteUiState> = _uiState.asStateFlow()
@@ -89,14 +94,38 @@ class AddNoteViewModel @Inject constructor(
 
     fun requestAiSuggestions() {
         val content = _uiState.value.content
-        if (content.length < 15) return
+        if (content.length < 15 || _uiState.value.isAiProcessing) return
         viewModelScope.launch {
-            _uiState.update { it.copy(isAiProcessing = true) }
+            _uiState.update {
+                it.copy(
+                    isAiProcessing = true,
+                    aiErrorMessage = null,
+                    authenticationRequired = false
+                )
+            }
             val catNames = _uiState.value.categories.map { it.name }
-            val metadata = geminiService.extractNoteMetadata(content, catNames)
+            val result = noteAiProcessor.process(
+                text = content,
+                categoryNames = catNames,
+                currentDate = LocalDate.now().toString()
+            )
+            val fallback = result.toFallback(content)
 
             _uiState.update { s ->
-                var updated = s.copy(isAiProcessing = false)
+                if (result !is NoteAiResult.Success) {
+                    return@update s.copy(
+                        isAiProcessing = false,
+                        aiErrorMessage = fallback.message,
+                        authenticationRequired = fallback.authenticationRequired
+                    )
+                }
+
+                val metadata = result.metadata
+                var updated = s.copy(
+                    isAiProcessing = false,
+                    aiErrorMessage = null,
+                    authenticationRequired = false
+                )
                 if (metadata.title.isNotBlank() && s.title.isBlank()) {
                     updated = updated.copy(title = metadata.title, aiTitleSuggestion = metadata.title)
                 }
@@ -152,7 +181,11 @@ class AddNoteViewModel @Inject constructor(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddNoteScreen(onNavigateBack: () -> Unit, viewModel: AddNoteViewModel = hiltViewModel()) {
+fun AddNoteScreen(
+    onNavigateBack: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    viewModel: AddNoteViewModel = hiltViewModel()
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -199,6 +232,16 @@ fun AddNoteScreen(onNavigateBack: () -> Unit, viewModel: AddNoteViewModel = hilt
                 } else {
                     OutlinedButton(onClick = viewModel::requestAiSuggestions, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
                         Text("✨"); Spacer(Modifier.width(8.dp)); Text("Suggerisci con Gemini AI")
+                    }
+                }
+            }
+
+            uiState.aiErrorMessage?.let { message ->
+                Spacer(Modifier.height(8.dp))
+                Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                if (uiState.authenticationRequired) {
+                    TextButton(onClick = onNavigateToLogin) {
+                        Text("Accedi")
                     }
                 }
             }

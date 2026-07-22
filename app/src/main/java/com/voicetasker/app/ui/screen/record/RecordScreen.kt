@@ -33,7 +33,11 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltViewModel()) {
+fun RecordScreen(
+    onNavigateBack: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    viewModel: RecordViewModel = hiltViewModel()
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var hasPermission by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) }
@@ -102,6 +106,11 @@ fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltVi
             uiState.errorMessage?.let { msg ->
                 Spacer(Modifier.height(8.dp))
                 Text(msg, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                if (uiState.authenticationRequired) {
+                    TextButton(onClick = onNavigateToLogin) {
+                        Text("Accedi")
+                    }
+                }
             }
 
             // --- Form after recording ---
@@ -116,6 +125,17 @@ fun RecordScreen(onNavigateBack: () -> Unit, viewModel: RecordViewModel = hiltVi
                             Spacer(Modifier.width(8.dp))
                             Text("✨ Gemini sta analizzando la nota...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                         }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                } else {
+                    OutlinedButton(
+                        onClick = viewModel::requestAiProcessing,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Icon(Icons.Filled.AutoAwesome, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Elabora con AI")
                     }
                     Spacer(Modifier.height(12.dp))
                 }

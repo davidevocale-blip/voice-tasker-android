@@ -89,7 +89,12 @@ fun NavGraph() {
                     onNavigateToPaywall = { trigger -> navController.navigate(Screen.Paywall.createRoute(trigger)) }
                 )
             }
-            composable(Screen.Record.route) { RecordScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.Record.route) {
+                RecordScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToLogin = { navController.navigate(Screen.Login.route) }
+                )
+            }
             composable(Screen.Calendar.route) { CalendarScreen(onNavigateToNoteDetail = { navController.navigate(Screen.NoteDetail.createRoute(it)) }) }
             composable(Screen.NoteDetail.route, arguments = listOf(navArgument("noteId") { type = NavType.LongType })) {
                 NoteDetailScreen(
@@ -97,7 +102,12 @@ fun NavGraph() {
                     onNavigateToPaywall = { trigger -> navController.navigate(Screen.Paywall.createRoute(trigger)) }
                 )
             }
-            composable(Screen.AddNote.route) { AddNoteScreen(onNavigateBack = { navController.popBackStack() }) }
+            composable(Screen.AddNote.route) {
+                AddNoteScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToLogin = { navController.navigate(Screen.Login.route) }
+                )
+            }
             composable(Screen.Categories.route) { CategoriesScreen() }
             composable(Screen.Settings.route) {
                 SettingsScreen(
