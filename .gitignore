@@ -24,3 +24,4 @@ keystore.properties
 .env
 gradle_temp/
 gradle_dl.zip
+supabase/.temp/
