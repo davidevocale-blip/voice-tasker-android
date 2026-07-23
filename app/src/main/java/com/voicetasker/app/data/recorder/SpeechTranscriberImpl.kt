@@ -21,7 +21,7 @@ class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val 
 
     companion object {
         private const val TAG = "SpeechTranscriber"
-        private const val SILENCE_TIMEOUT_MS = 2000L
+        private const val SILENCE_TIMEOUT_MS = 3000L
     }
 
     sealed class TranscriptionState {
@@ -139,7 +139,7 @@ class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val 
                 SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> {
                     // The recognizer stopped because it didn't hear anything
                     // If we already have text and enough silence has passed, stop
-                    if (System.currentTimeMillis() - lastTextReceivedTime >= SILENCE_TIMEOUT_MS) {
+                    if (hasReceivedAnyText && System.currentTimeMillis() - lastTextReceivedTime >= SILENCE_TIMEOUT_MS) {
                         Log.d(TAG, "Silence timeout triggered from onError")
                         emitSilenceTimeout()
                         return
@@ -194,7 +194,7 @@ class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val 
         silenceWatchdog = object : Runnable {
             override fun run() {
                 if (!isListening) return
-                if (System.currentTimeMillis() - lastTextReceivedTime >= SILENCE_TIMEOUT_MS) {
+                if (hasReceivedAnyText && System.currentTimeMillis() - lastTextReceivedTime >= SILENCE_TIMEOUT_MS) {
                     Log.d(TAG, "Silence watchdog triggered")
                     emitSilenceTimeout()
                     return
