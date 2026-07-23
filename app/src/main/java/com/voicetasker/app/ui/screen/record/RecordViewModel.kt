@@ -3,12 +3,14 @@ package com.voicetasker.app.ui.screen.record
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.voicetasker.app.data.ai.GeminiService
 import com.voicetasker.app.data.billing.BillingManager
 import com.voicetasker.app.data.recorder.SpeechTranscriberImpl
 import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.model.Note
 import com.voicetasker.app.domain.model.ReminderType
+import com.voicetasker.app.domain.ai.NoteAiProcessor
+import com.voicetasker.app.domain.ai.NoteAiResult
+import com.voicetasker.app.domain.ai.toFallback
 import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.Locale
 import javax.inject.Inject
 
@@ -42,6 +45,7 @@ data class RecordUiState(
     val noteTime: String = "",
     val noteDate: String = "",
     val errorMessage: String? = null,
+    val authenticationRequired: Boolean = false,
     val isPremium: Boolean = false,
     val maxDurationMs: Long = 60_000L // 1 min free, 10 min premium
 )
@@ -53,7 +57,7 @@ class RecordViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val reminderRepository: ReminderRepository,
     private val feedbackManager: FeedbackManager,
-    private val geminiService: GeminiService,
+    private val noteAiProcessor: NoteAiProcessor,
     private val billingManager: BillingManager
 ) : ViewModel() {
 
@@ -90,7 +94,8 @@ class RecordViewModel @Inject constructor(
             it.copy(
                 isRecording = true, amplitudes = emptyList(), recordingDurationMs = 0,
                 transcription = "", errorMessage = null, title = "", aiTitleSuggestion = null,
-                location = "", noteTime = "", noteDate = "", isAiProcessing = false
+                location = "", noteTime = "", noteDate = "", isAiProcessing = false,
+                authenticationRequired = false
             )
         }
 
@@ -102,7 +107,6 @@ class RecordViewModel @Inject constructor(
             speechTranscriber.state.collect { state ->
                 when (state) {
                     is SpeechTranscriberImpl.TranscriptionState.Result -> {
-                        Log.d(TAG, "Got Result: ${state.text.take(50)}")
                         _uiState.update { it.copy(transcription = state.text) }
                     }
                     is SpeechTranscriberImpl.TranscriptionState.PartialResult -> {
@@ -152,15 +156,11 @@ class RecordViewModel @Inject constructor(
 
     private fun performStop() {
         if (!_uiState.value.isRecording && !_uiState.value.isAiProcessing) return
-        Log.d(TAG, "performStop, transcription length=${_uiState.value.transcription.length}")
-
         timerJob?.cancel()
         rmsJob?.cancel()
         _uiState.update { it.copy(isRecording = false) }
 
         val transcription = _uiState.value.transcription
-        Log.d(TAG, "Text='${transcription.take(80)}'")
-
         if (transcription.isNotBlank()) {
             viewModelScope.launch {
                 processWithAi(transcription)
@@ -168,50 +168,64 @@ class RecordViewModel @Inject constructor(
         }
     }
 
+    fun requestAiProcessing() {
+        val transcription = _uiState.value.transcription
+        if (transcription.isBlank() || _uiState.value.isAiProcessing) return
+        viewModelScope.launch { processWithAi(transcription) }
+    }
+
     private suspend fun processWithAi(rawTranscription: String) {
-        Log.d(TAG, "processWithAi START")
-        _uiState.update { it.copy(isAiProcessing = true) }
+        if (_uiState.value.isAiProcessing) return
+        _uiState.update {
+            it.copy(
+                isAiProcessing = true,
+                errorMessage = null,
+                authenticationRequired = false
+            )
+        }
 
-        try {
-            val catNames = _uiState.value.categories.map { it.name }
-            Log.d(TAG, "Calling extractNoteMetadata with categories=$catNames")
-            val metadata = geminiService.extractNoteMetadata(rawTranscription, catNames)
-            Log.d(TAG, "AI result: title='${metadata.title}', date=${metadata.date}, time=${metadata.time}, location=${metadata.location}, category=${metadata.category}")
+        val categoryNames = _uiState.value.categories.map { it.name }
+        val result = noteAiProcessor.process(
+            text = rawTranscription,
+            categoryNames = categoryNames,
+            currentDate = LocalDate.now().toString()
+        )
+        val fallback = result.toFallback(rawTranscription)
 
-            _uiState.update { s ->
-                val errorMsg = if (metadata.improvedText.startsWith("ERRORE:")) metadata.improvedText else null
-                var updated = s.copy(
-                    title = metadata.title.ifBlank { s.title },
-                    transcription = if (errorMsg == null) metadata.improvedText.ifBlank { rawTranscription } else rawTranscription,
-                    aiTitleSuggestion = metadata.title.takeIf { it.isNotBlank() },
-                    location = metadata.location ?: "",
-                    noteTime = metadata.time ?: "",
-                    noteDate = metadata.date ?: "",
+        _uiState.update { state ->
+            if (result !is NoteAiResult.Success) {
+                return@update state.copy(
                     isAiProcessing = false,
-                    errorMessage = errorMsg
+                    errorMessage = fallback.message,
+                    authenticationRequired = fallback.authenticationRequired
                 )
-                // Set scheduled date
-                if (metadata.date != null) {
-                    try {
-                        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                        val parsed = sdf.parse(metadata.date)
-                        if (parsed != null) updated = updated.copy(scheduledDate = parsed.time)
-                    } catch (_: Exception) {}
-                }
-                // Set category
-                if (metadata.category != null) {
-                    val catId = s.categories.find { it.name.equals(metadata.category, ignoreCase = true) }?.id
-                    if (catId != null) {
-                        Log.d(TAG, "Setting category to ${metadata.category} (id=$catId)")
-                        updated = updated.copy(selectedCategoryId = catId)
-                    }
-                }
-                updated
             }
-            Log.d(TAG, "processWithAi DONE")
-        } catch (e: Exception) {
-            Log.e(TAG, "processWithAi FAILED", e)
-            _uiState.update { it.copy(isAiProcessing = false) }
+
+            val metadata = result.metadata
+            var updated = state.copy(
+                title = metadata.title.ifBlank { state.title },
+                transcription = fallback.text.ifBlank { rawTranscription },
+                aiTitleSuggestion = metadata.title.takeIf { it.isNotBlank() },
+                location = metadata.location ?: "",
+                noteTime = metadata.time ?: "",
+                noteDate = metadata.date ?: "",
+                isAiProcessing = false,
+                errorMessage = null,
+                authenticationRequired = false
+            )
+            if (metadata.date != null) {
+                try {
+                    val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(metadata.date)
+                    if (parsed != null) updated = updated.copy(scheduledDate = parsed.time)
+                } catch (_: Exception) {}
+            }
+            if (metadata.category != null) {
+                val categoryId = state.categories.find {
+                    it.name.equals(metadata.category, ignoreCase = true)
+                }?.id
+                if (categoryId != null) updated = updated.copy(selectedCategoryId = categoryId)
+            }
+            updated
         }
     }
 
