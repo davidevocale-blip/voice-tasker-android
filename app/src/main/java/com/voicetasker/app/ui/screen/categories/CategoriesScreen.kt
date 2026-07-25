@@ -1,7 +1,9 @@
 package com.voicetasker.app.ui.screen.categories
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,8 +18,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,6 +30,8 @@ import androidx.lifecycle.viewModelScope
 import com.voicetasker.app.R
 import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.repository.CategoryRepository
+import com.voicetasker.app.ui.theme.VoiceTaskerSizing
+import com.voicetasker.app.ui.theme.VoiceTaskerSpacing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,34 +63,259 @@ class CategoriesViewModel @Inject constructor(private val repo: CategoryReposito
 fun CategoriesScreen(viewModel: CategoriesViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.categories_title), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
-        floatingActionButton = { FloatingActionButton(onClick = viewModel::showAdd, containerColor = MaterialTheme.colorScheme.primary) { Icon(Icons.Filled.Add, stringResource(R.string.add_category)) } },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.categories_title),
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = viewModel::showAdd,
+                modifier = Modifier.size(VoiceTaskerSizing.primaryFab),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = stringResource(R.string.add_category)
+                )
+            }
+        },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(uiState.categories) { cat ->
-                val color = try { Color(android.graphics.Color.parseColor(cat.colorHex)) } catch (_: Exception) { MaterialTheme.colorScheme.primary }
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = MaterialTheme.shapes.medium) {
-                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(40.dp).clip(CircleShape).background(color), contentAlignment = Alignment.Center) { Icon(Icons.Filled.Label, null, tint = Color.White, modifier = Modifier.size(20.dp)) }
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) { Text(cat.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold); if (cat.isDefault) Text(stringResource(R.string.default_category), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                        IconButton(onClick = { viewModel.showEdit(cat) }) { Icon(Icons.Filled.Edit, stringResource(R.string.edit), Modifier.size(20.dp)) }
-                        if (!cat.isDefault) { IconButton(onClick = { viewModel.delete(cat.id) }) { Icon(Icons.Filled.Delete, stringResource(R.string.delete), Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error) } }
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(
+                start = VoiceTaskerSpacing.md,
+                end = VoiceTaskerSpacing.md,
+                top = VoiceTaskerSpacing.sm,
+                bottom = VoiceTaskerSpacing.huge
+            ),
+            verticalArrangement = Arrangement.spacedBy(VoiceTaskerSpacing.xs)
+        ) {
+            items(uiState.categories, key = { it.id }) { category ->
+                val categoryColor = categoryColor(category.colorHex)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 72.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier
+                                .width(4.dp)
+                                .heightIn(min = 72.dp)
+                                .background(categoryColor)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = VoiceTaskerSpacing.sm)
+                                .size(12.dp)
+                                .clip(CircleShape)
+                                .background(categoryColor)
+                        )
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(vertical = VoiceTaskerSpacing.sm)
+                        ) {
+                            Text(
+                                text = category.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (category.isDefault) {
+                                Spacer(Modifier.height(VoiceTaskerSpacing.xxs))
+                                Text(
+                                    text = stringResource(
+                                        R.string.default_category
+                                    ),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme
+                                        .onSurfaceVariant
+                                )
+                            }
+                        }
+                        IconButton(
+                            onClick = { viewModel.showEdit(category) },
+                            modifier = Modifier.size(
+                                VoiceTaskerSizing.minimumTouchTarget
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = stringResource(R.string.edit)
+                            )
+                        }
+                        if (!category.isDefault) {
+                            IconButton(
+                                onClick = { viewModel.delete(category.id) },
+                                modifier = Modifier.size(
+                                    VoiceTaskerSizing.minimumTouchTarget
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Delete,
+                                    contentDescription = stringResource(
+                                        R.string.delete
+                                    ),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        } else {
+                            Spacer(
+                                Modifier.width(
+                                    VoiceTaskerSizing.minimumTouchTarget
+                                )
+                            )
+                        }
                     }
                 }
             }
         }
     }
     if (uiState.showDialog) {
-        AlertDialog(onDismissRequest = viewModel::dismiss, title = { Text(stringResource(if (uiState.editing != null) R.string.edit else R.string.new_category)) },
-            text = { Column {
-                OutlinedTextField(uiState.name, viewModel::onNameChanged, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.category_name)) }, singleLine = true, shape = MaterialTheme.shapes.medium)
-                uiState.errorRes?.let { Spacer(Modifier.height(4.dp)); Text(stringResource(it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-                Spacer(Modifier.height(12.dp)); Text(stringResource(R.string.category_color), style = MaterialTheme.typography.labelLarge); Spacer(Modifier.height(8.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { items(COLORS) { hex -> val c = try { Color(android.graphics.Color.parseColor(hex)) } catch (_: Exception) { MaterialTheme.colorScheme.primary }; Box(Modifier.size(36.dp).clip(CircleShape).background(c).clickable { viewModel.onColorChanged(hex) }, contentAlignment = Alignment.Center) { if (uiState.color == hex) Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(18.dp)) } } }
-            } },
-            confirmButton = { TextButton(onClick = viewModel::save) { Text(stringResource(R.string.save)) } },
-            dismissButton = { TextButton(onClick = viewModel::dismiss) { Text(stringResource(R.string.cancel)) } })
+        AlertDialog(
+            onDismissRequest = viewModel::dismiss,
+            title = {
+                Text(
+                    stringResource(
+                        if (uiState.editing != null) {
+                            R.string.edit
+                        } else {
+                            R.string.new_category
+                        }
+                    )
+                )
+            },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = uiState.name,
+                        onValueChange = viewModel::onNameChanged,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.category_name)) },
+                        singleLine = true,
+                        isError = uiState.errorRes != null,
+                        shape = MaterialTheme.shapes.medium
+                    )
+                    uiState.errorRes?.let { error ->
+                        Spacer(Modifier.height(VoiceTaskerSpacing.xxs))
+                        Text(
+                            text = stringResource(error),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Spacer(Modifier.height(VoiceTaskerSpacing.md))
+                    Text(
+                        text = stringResource(R.string.category_color),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    Spacer(Modifier.height(VoiceTaskerSpacing.xs))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(
+                            VoiceTaskerSpacing.xs
+                        ),
+                        contentPadding = PaddingValues(
+                            vertical = VoiceTaskerSpacing.xxs
+                        )
+                    ) {
+                        items(COLORS) { hex ->
+                            val color = categoryColor(hex)
+                            val selected = uiState.color == hex
+                            Box(
+                                modifier = Modifier
+                                    .size(
+                                        VoiceTaskerSizing.minimumTouchTarget
+                                    )
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .then(
+                                        if (selected) {
+                                            Modifier.border(
+                                                3.dp,
+                                                MaterialTheme.colorScheme
+                                                    .onSurface,
+                                                CircleShape
+                                            )
+                                        } else {
+                                            Modifier
+                                        }
+                                    )
+                                    .clickable {
+                                        viewModel.onColorChanged(hex)
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (selected) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Check,
+                                        contentDescription = null,
+                                        tint = if (color.luminance() > 0.5f) {
+                                            Color.Black
+                                        } else {
+                                            Color.White
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = viewModel::save,
+                    modifier = Modifier.heightIn(
+                        min = VoiceTaskerSizing.minimumTouchTarget
+                    )
+                ) {
+                    Text(stringResource(R.string.save))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = viewModel::dismiss,
+                    modifier = Modifier.heightIn(
+                        min = VoiceTaskerSizing.minimumTouchTarget
+                    )
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun categoryColor(colorHex: String): Color {
+    return try {
+        Color(android.graphics.Color.parseColor(colorHex))
+    } catch (_: Exception) {
+        MaterialTheme.colorScheme.primary
     }
 }
