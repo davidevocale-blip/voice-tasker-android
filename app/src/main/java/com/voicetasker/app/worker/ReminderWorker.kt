@@ -28,12 +28,12 @@ class ReminderWorker @AssistedInject constructor(
         val note = noteDao.getNoteByIdOnce(noteId) ?: return Result.failure()
         if (reminderId > 0) reminderRepository.markAsTriggered(reminderId)
         val manager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH)
+        val channel = NotificationChannel(CHANNEL_ID, applicationContext.getString(R.string.notification_channel_reminders), NotificationManager.IMPORTANCE_HIGH)
         manager.createNotificationChannel(channel)
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(note.title.ifBlank { "Promemoria VoiceTasker" })
-            .setContentText(note.transcription.take(100).ifBlank { "Hai un impegno in programma!" })
+            .setContentTitle(note.title.ifBlank { applicationContext.getString(R.string.notification_reminder_title) })
+            .setContentText(note.transcription.take(100).ifBlank { applicationContext.getString(R.string.notification_reminder_text) })
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .build()
@@ -43,6 +43,5 @@ class ReminderWorker @AssistedInject constructor(
 
     companion object {
         const val CHANNEL_ID = "voicetasker_reminders"
-        const val CHANNEL_NAME = "Promemoria"
     }
 }

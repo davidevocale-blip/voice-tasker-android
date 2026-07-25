@@ -18,11 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.voicetasker.app.R
+import com.voicetasker.app.ui.resources.asString
 import com.voicetasker.app.ui.theme.*
 import android.content.Context
 import android.content.pm.PackageManager
@@ -64,9 +67,9 @@ fun getAppSignatureSHA1(context: Context): String {
             }
         }
     } catch (e: Exception) {
-        return "Error: ${e.message}"
+        return context.getString(R.string.signature_error, e.message)
     }
-    return "No signature found"
+    return context.getString(R.string.signature_not_found)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,7 +95,7 @@ fun LoginScreen(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -133,7 +136,7 @@ fun LoginScreen(
                     Spacer(Modifier.height(16.dp))
 
                     Text(
-                        "Accedi a VoiceTasker",
+                        stringResource(R.string.login_title),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
@@ -142,7 +145,7 @@ fun LoginScreen(
                     Spacer(Modifier.height(8.dp))
 
                     Text(
-                        "Accedi per sbloccare le funzionalità Premium\ne sincronizzare i tuoi dati",
+                        stringResource(R.string.login_subtitle),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -152,11 +155,11 @@ fun LoginScreen(
 
                     // Features list
                     val features: List<Pair<androidx.compose.ui.graphics.vector.ImageVector, String>> = listOf(
-                        Pair(Icons.Filled.AllInclusive, "Note vocali illimitate"),
-                        Pair(Icons.Filled.Timer, "Registrazioni fino a 10 min"),
-                        Pair(Icons.Filled.Category, "Categorie illimitate"),
-                        Pair(Icons.Filled.NotificationsActive, "Reminder personalizzati"),
-                        Pair(Icons.Filled.Block, "Nessuna pubblicità")
+                        Pair(Icons.Filled.AllInclusive, stringResource(R.string.feature_unlimited_voice_notes)),
+                        Pair(Icons.Filled.Timer, stringResource(R.string.feature_ten_minute_recordings)),
+                        Pair(Icons.Filled.Category, stringResource(R.string.feature_unlimited_categories)),
+                        Pair(Icons.Filled.NotificationsActive, stringResource(R.string.feature_custom_reminders)),
+                        Pair(Icons.Filled.Block, stringResource(R.string.feature_no_ads))
                     )
 
                     Card(
@@ -198,7 +201,7 @@ fun LoginScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                error,
+                                error.asString(),
                                 modifier = Modifier.padding(12.dp),
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 style = MaterialTheme.typography.bodySmall
@@ -217,7 +220,7 @@ fun LoginScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                success,
+                                success.asString(),
                                 modifier = Modifier.padding(12.dp),
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 style = MaterialTheme.typography.bodySmall
@@ -230,7 +233,7 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = uiState.emailInput,
                         onValueChange = viewModel::onEmailChange,
-                        label = { Text("Email") },
+                        label = { Text(stringResource(R.string.email)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
@@ -243,7 +246,7 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = uiState.passwordInput,
                         onValueChange = viewModel::onPasswordChange,
-                        label = { Text("Password") },
+                        label = { Text(stringResource(R.string.password)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
@@ -260,18 +263,18 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         enabled = !uiState.isLoading
                     ) {
-                        Text(if (uiState.isLoginMode) "Accedi con Email" else "Registrati")
+                        Text(stringResource(if (uiState.isLoginMode) R.string.sign_in_with_email else R.string.register))
                     }
                     
                     Spacer(Modifier.height(8.dp))
 
                     TextButton(onClick = viewModel::toggleLoginMode) {
-                        Text(if (uiState.isLoginMode) "Non hai un account? Registrati" else "Hai già un account? Accedi")
+                        Text(stringResource(if (uiState.isLoginMode) R.string.no_account_register else R.string.already_have_account_sign_in))
                     }
 
                     Spacer(Modifier.height(16.dp))
                     
-                    Text("oppure", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.or), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     
                     Spacer(Modifier.height(16.dp))
 
@@ -298,18 +301,18 @@ fun LoginScreen(
                                 strokeWidth = 2.dp
                             )
                             Spacer(Modifier.width(12.dp))
-                            Text("Attendere...")
+                            Text(stringResource(R.string.please_wait))
                         } else {
                             // Google "G" icon
                             Text(
-                                "G",
+                                stringResource(R.string.google_logo_letter),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF4285F4)
                             )
                             Spacer(Modifier.width(12.dp))
                             Text(
-                                "Continua con Google",
+                                stringResource(R.string.continue_with_google),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -319,7 +322,7 @@ fun LoginScreen(
                     Spacer(Modifier.height(16.dp))
 
                     Text(
-                        "Accedendo accetti i Termini di Servizio\ne la Privacy Policy",
+                        stringResource(R.string.terms_acceptance),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
                         textAlign = TextAlign.Center
@@ -328,7 +331,7 @@ fun LoginScreen(
                     Spacer(Modifier.height(24.dp))
                     
                     TextButton(onClick = { showDiagnostics = true }) {
-                        Text("Diagnostica di Rete")
+                        Text(stringResource(R.string.network_diagnostics))
                     }
                 }
             }
@@ -338,18 +341,18 @@ fun LoginScreen(
     if (showDiagnostics) {
         AlertDialog(
             onDismissRequest = { showDiagnostics = false },
-            title = { Text("Report Diagnostico") },
+            title = { Text(stringResource(R.string.diagnostic_report)) },
             text = {
                 Column {
-                    Text("SHA-1 Installato:", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.installed_sha1), fontWeight = FontWeight.Bold)
                     Text(getAppSignatureSHA1(context), style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(8.dp))
-                    Text("Package:", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.package_label), fontWeight = FontWeight.Bold)
                     Text(context.packageName, style = MaterialTheme.typography.bodyMedium)
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showDiagnostics = false }) { Text("Chiudi") }
+                TextButton(onClick = { showDiagnostics = false }) { Text(stringResource(R.string.close)) }
             }
         )
     }

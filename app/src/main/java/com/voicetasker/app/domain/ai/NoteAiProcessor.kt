@@ -31,52 +31,61 @@ interface NoteAiProcessor {
 data class NoteAiFallback(
     val text: String,
     val canSaveLocally: Boolean,
-    val message: String?,
+    val failureReason: NoteAiFailureReason?,
     val authenticationRequired: Boolean
 )
+
+enum class NoteAiFailureReason {
+    AUTHENTICATION_REQUIRED,
+    TIMEOUT,
+    RATE_LIMITED,
+    NETWORK_ERROR,
+    INVALID_RESPONSE,
+    SERVER_ERROR
+}
 
 fun NoteAiResult.toFallback(originalText: String): NoteAiFallback = when (this) {
     is NoteAiResult.Success -> NoteAiFallback(
         text = metadata.improvedText,
         canSaveLocally = true,
-        message = null,
+        failureReason = null,
         authenticationRequired = false
     )
     NoteAiResult.AuthenticationRequired,
     NoteAiResult.SessionExpired -> NoteAiFallback(
         text = originalText,
         canSaveLocally = true,
-        message = "Accedi per elaborare con AI",
+        failureReason = NoteAiFailureReason.AUTHENTICATION_REQUIRED,
         authenticationRequired = true
     )
     NoteAiResult.Timeout -> NoteAiFallback(
         text = originalText,
         canSaveLocally = true,
-        message = "Elaborazione AI scaduta. Puoi salvare la nota senza elaborazione.",
+        failureReason = NoteAiFailureReason.TIMEOUT,
         authenticationRequired = false
     )
     is NoteAiResult.RateLimited -> NoteAiFallback(
         text = originalText,
         canSaveLocally = true,
-        message = "Troppe richieste AI. Riprova più tardi o salva la nota.",
+        failureReason = NoteAiFailureReason.RATE_LIMITED,
         authenticationRequired = false
     )
     NoteAiResult.NetworkError -> NoteAiFallback(
         text = originalText,
         canSaveLocally = true,
-        message = "Rete non disponibile. Puoi salvare la nota senza elaborazione AI.",
+        failureReason = NoteAiFailureReason.NETWORK_ERROR,
         authenticationRequired = false
     )
     NoteAiResult.InvalidResponse -> NoteAiFallback(
         text = originalText,
         canSaveLocally = true,
-        message = "Risposta AI non valida. Puoi salvare la nota originale.",
+        failureReason = NoteAiFailureReason.INVALID_RESPONSE,
         authenticationRequired = false
     )
     is NoteAiResult.ServerError -> NoteAiFallback(
         text = originalText,
         canSaveLocally = true,
-        message = "Servizio AI non disponibile. Puoi salvare la nota originale.",
+        failureReason = NoteAiFailureReason.SERVER_ERROR,
         authenticationRequired = false
     )
 }

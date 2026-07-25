@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.voicetasker.app.data.billing.BillingManager
+import com.voicetasker.app.R
 import com.voicetasker.app.data.recorder.SpeechTranscriberImpl
 import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.model.Note
@@ -15,6 +16,9 @@ import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
 import com.voicetasker.app.util.FeedbackManager
+import com.voicetasker.app.ui.resources.StringResolver
+import com.voicetasker.app.ui.resources.UiText
+import com.voicetasker.app.ui.resources.messageRes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -44,7 +48,7 @@ data class RecordUiState(
     val location: String = "",
     val noteTime: String = "",
     val noteDate: String = "",
-    val errorMessage: String? = null,
+    val errorMessage: UiText? = null,
     val authenticationRequired: Boolean = false,
     val isPremium: Boolean = false,
     val maxDurationMs: Long = 60_000L // 1 min free, 10 min premium
@@ -52,6 +56,7 @@ data class RecordUiState(
 
 @HiltViewModel
 class RecordViewModel @Inject constructor(
+    private val stringResolver: StringResolver,
     private val speechTranscriber: SpeechTranscriberImpl,
     private val noteRepository: NoteRepository,
     private val categoryRepository: CategoryRepository,
@@ -120,7 +125,7 @@ class RecordViewModel @Inject constructor(
                     }
                     is SpeechTranscriberImpl.TranscriptionState.Error -> {
                         Log.e(TAG, "Error: ${state.message}")
-                        _uiState.update { it.copy(errorMessage = state.message) }
+                        _uiState.update { it.copy(errorMessage = UiText.Dynamic(state.message)) }
                     }
                     else -> {}
                 }
@@ -196,7 +201,7 @@ class RecordViewModel @Inject constructor(
             if (result !is NoteAiResult.Success) {
                 return@update state.copy(
                     isAiProcessing = false,
-                    errorMessage = fallback.message,
+                    errorMessage = fallback.failureReason?.let { UiText.Resource(it.messageRes()) },
                     authenticationRequired = fallback.authenticationRequired
                 )
             }
@@ -249,7 +254,7 @@ class RecordViewModel @Inject constructor(
             val now = System.currentTimeMillis()
             val noteId = noteRepository.insertNote(
                 Note(
-                    title = s.title.ifBlank { "Nota vocale" },
+                    title = s.title.ifBlank { stringResolver.resolve(R.string.voice_note) },
                     transcription = s.transcription,
                     audioFilePath = "",
                     categoryId = s.selectedCategoryId ?: 1,

@@ -24,7 +24,7 @@ class NoteAiFallbackPolicyTest {
             val fallback = failure.toFallback(originalText)
             assertEquals(originalText, fallback.text)
             assertTrue(fallback.canSaveLocally)
-            assertTrue(fallback.message?.isNotBlank() == true)
+            assertTrue(fallback.failureReason != null)
         }
     }
 

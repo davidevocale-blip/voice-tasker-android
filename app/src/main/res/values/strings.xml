@@ -1,1 +1,217 @@
-<resources><string name="app_name">VoiceTasker</string></resources>
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VoiceTasker</string>
+
+    <!-- Common actions and accessibility -->
+    <string name="back">Indietro</string>
+    <string name="save">Salva</string>
+    <string name="cancel">Annulla</string>
+    <string name="delete">Elimina</string>
+    <string name="edit">Modifica</string>
+    <string name="close">Chiudi</string>
+    <string name="remove">Rimuovi</string>
+    <string name="completed_mark">✓</string>
+    <string name="confirm">OK</string>
+    <string name="sign_in">Accedi</string>
+    <string name="record">Registra</string>
+    <string name="search">Cerca</string>
+    <string name="manual_note_action_content_description">Nota manuale</string>
+    <string name="manual_note_fallback_title">Nota manuale</string>
+    <string name="avatar">Avatar</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_calendar">Calendario</string>
+    <string name="nav_categories">Categorie</string>
+    <string name="nav_settings">Impostazioni</string>
+
+    <!-- Notes and shared form labels -->
+    <string name="note">Nota</string>
+    <string name="voice_note">Nota vocale</string>
+    <string name="note_title">Titolo</string>
+    <string name="note_title_ai_suggested">Titolo (suggerito da AI ✨)</string>
+    <string name="description">Descrizione</string>
+    <string name="note_content">Contenuto della nota</string>
+    <string name="no_content">Nessun contenuto</string>
+    <string name="no_description">Nessuna descrizione</string>
+    <string name="location">Dove</string>
+    <string name="location_ai_extracted">Dove (estratto da AI ✨)</string>
+    <string name="location_example">es. Ufficio, Roma...</string>
+    <string name="category">Categoria</string>
+    <string name="category_ai_suggested">Categoria (suggerita da AI ✨)</string>
+    <string name="reminders">Promemoria</string>
+    <string name="scheduled_date">Data programmata</string>
+    <string name="set_time">🕐 Imposta ora</string>
+    <string name="time_value">🕐 %1$s</string>
+    <string name="time_value_ai">🕐 %1$s (AI ✨)</string>
+    <string name="date_value">📅 %1$s</string>
+    <string name="select_time">Seleziona ora</string>
+    <string name="save_note">Salva nota</string>
+    <string name="data_label">Data</string>
+    <string name="time_label">Ora</string>
+    <string name="recording_duration">Durata registrazione</string>
+
+    <!-- Reminder types -->
+    <string name="reminder_one_day_before">1 giorno prima</string>
+    <string name="reminder_twelve_hours_before">12 ore prima</string>
+    <string name="reminder_two_hours_before">2 ore prima</string>
+
+    <!-- Home -->
+    <string name="upgrade_to_premium">Passa a Premium</string>
+    <string name="upgrade">Upgrade</string>
+    <plurals name="free_notes_remaining">
+        <item quantity="one">%1$d nota gratuita rimanente</item>
+        <item quantity="other">%1$d note gratuite rimanenti</item>
+    </plurals>
+    <string name="search_notes_hint">Cerca nelle note...</string>
+    <string name="no_notes">Nessuna nota</string>
+    <string name="no_notes_hint">Premi 🎤 per registrare o ✏️ per scrivere</string>
+
+    <!-- Categories -->
+    <string name="categories_title">Categorie</string>
+    <string name="add_category">Aggiungi</string>
+    <string name="default_category">Predefinita</string>
+    <string name="new_category">Nuova categoria</string>
+    <string name="category_name">Nome</string>
+    <string name="category_color">Colore</string>
+    <string name="category_name_required">Nome richiesto</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">Calendario</string>
+    <string name="previous_month">Prev</string>
+    <string name="next_month">Next</string>
+    <string name="weekday_monday_short">L</string>
+    <string name="weekday_tuesday_short">M</string>
+    <string name="weekday_wednesday_short">M</string>
+    <string name="weekday_thursday_short">G</string>
+    <string name="weekday_friday_short">V</string>
+    <string name="weekday_saturday_short">S</string>
+    <string name="weekday_sunday_short">D</string>
+    <string name="notes_for_day">Note del giorno</string>
+    <string name="no_commitments">Nessun impegno</string>
+
+    <!-- Add and record note -->
+    <string name="new_note">Nuova nota</string>
+    <string name="gemini_analyzing">✨ Gemini sta analizzando...</string>
+    <string name="gemini_analyzing_note">✨ Gemini sta analizzando la nota...</string>
+    <string name="gemini_icon">✨</string>
+    <string name="suggest_with_gemini">Suggerisci con Gemini AI</string>
+    <string name="process_with_ai">Elabora con AI</string>
+    <string name="record_note">Registra nota</string>
+    <string name="max_recording_minutes">Max %1$d min</string>
+    <string name="max_recording_minutes_free">Max %1$d min (Free)</string>
+    <string name="tap_to_stop">Tocca per fermare</string>
+    <string name="recording_completed">Completata</string>
+    <string name="tap_to_record">Tocca per registrare</string>
+
+    <!-- Note detail -->
+    <string name="note_detail">Dettaglio nota</string>
+    <string name="save_changes">Salva modifiche</string>
+    <string name="open_in_google_maps">📍 Apri in Google Maps</string>
+    <string name="no_reminders">Nessun promemoria</string>
+    <string name="unlock_reminders_premium">Sblocca promemoria con Premium</string>
+    <string name="delete_note">Elimina nota</string>
+    <string name="delete_note_confirmation">Sei sicuro di voler eliminare questa nota?</string>
+
+    <!-- Authentication -->
+    <string name="login_title">Accedi a VoiceTasker</string>
+    <string name="login_subtitle">Accedi per sbloccare le funzionalità Premium\ne sincronizzare i tuoi dati</string>
+    <string name="feature_unlimited_voice_notes">Note vocali illimitate</string>
+    <string name="feature_ten_minute_recordings">Registrazioni fino a 10 min</string>
+    <string name="feature_unlimited_categories">Categorie illimitate</string>
+    <string name="feature_custom_reminders">Reminder personalizzati</string>
+    <string name="feature_personalized_reminders">Promemoria personalizzati</string>
+    <string name="feature_no_ads">Nessuna pubblicità</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="sign_in_with_email">Accedi con Email</string>
+    <string name="register">Registrati</string>
+    <string name="no_account_register">Non hai un account? Registrati</string>
+    <string name="already_have_account_sign_in">Hai già un account? Accedi</string>
+    <string name="or">oppure</string>
+    <string name="please_wait">Attendere...</string>
+    <string name="google_logo_letter">G</string>
+    <string name="continue_with_google">Continua con Google</string>
+    <string name="terms_acceptance">Accedendo accetti i Termini di Servizio\ne la Privacy Policy</string>
+    <string name="network_diagnostics">Diagnostica di Rete</string>
+    <string name="diagnostic_report">Report Diagnostico</string>
+    <string name="installed_sha1">SHA-1 Installato:</string>
+    <string name="package_label">Package:</string>
+    <string name="signature_error">Error: %1$s</string>
+    <string name="signature_not_found">No signature found</string>
+    <string name="login_error">Errore durante l\'accesso: %1$s</string>
+    <string name="fill_all_fields">Compila tutti i campi.</string>
+    <string name="password_minimum_length">La password deve avere almeno 6 caratteri.</string>
+    <string name="registration_complete">Registrazione completata! Controlla la tua email per il link di attivazione.</string>
+    <string name="generic_error_with_detail">Errore: %1$s</string>
+
+    <!-- Premium and billing -->
+    <string name="premium">Premium</string>
+    <string name="voicetasker_premium">VoiceTasker Premium</string>
+    <string name="premium_welcome">🎉 Benvenuto in Premium!</string>
+    <string name="purchase_complete_welcome">🎉 Acquisto completato! Benvenuto in Premium!</string>
+    <string name="premium_trigger_note_limit">Hai raggiunto il limite di 10 note gratuite</string>
+    <string name="premium_trigger_ai">Funzionalità Premium</string>
+    <string name="premium_trigger_reminder">I promemoria sono una funzionalità Premium</string>
+    <string name="premium_trigger_recording_limit">Le registrazioni oltre 1 minuto sono Premium</string>
+    <string name="premium_trigger_default">Sblocca tutte le funzionalità</string>
+    <string name="feature_unlimited_notes">Note illimitate</string>
+    <string name="feature_unlimited_notes_subtitle">Crea tutte le note che vuoi</string>
+    <string name="feature_smart_reminders">Promemoria smart</string>
+    <string name="feature_smart_reminders_subtitle">Reminder personalizzati</string>
+    <string name="feature_long_recordings">Registrazioni lunghe</string>
+    <string name="feature_long_recordings_subtitle">Fino a 10 minuti di registrazione</string>
+    <string name="sign_in_to_subscribe">Accedi per abbonarti</string>
+    <string name="sign_in_before_purchase">Devi effettuare l\'accesso prima di acquistare Premium</string>
+    <string name="sign_in_with_google">Accedi con Google</string>
+    <string name="monthly_plan">Mensile — €3,99/mese</string>
+    <string name="cancel_anytime">Cancella quando vuoi</string>
+    <string name="yearly_plan">Annuale — €29,99/anno</string>
+    <string name="yearly_discount" formatted="false">"\u0020-37%\u0020"</string>
+    <string name="yearly_savings">€2,50/mese • Risparmi €17,89</string>
+    <string name="lifetime_plan">Una tantum — €49,99 per sempre</string>
+    <string name="not_now">Non ora</string>
+    <string name="plan_unavailable">Piano non disponibile</string>
+    <string name="monthly_product_unavailable">Prodotto mensile non disponibile su Google Play (Play Console in configurazione).</string>
+    <string name="yearly_product_unavailable">Prodotto annuale non disponibile su Google Play (Play Console in configurazione).</string>
+    <string name="lifetime_product_unavailable">Prodotto Lifetime non disponibile su Google Play (Play Console in configurazione).</string>
+    <string name="purchase_error">Errore durante l\'acquisto: %1$s</string>
+    <string name="purchase_confirmation_error">Errore nella conferma dell\'acquisto</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="user_fallback">Utente</string>
+    <string name="user_initial_fallback">U</string>
+    <string name="sign_out_account">Esci dall\'account</string>
+    <string name="not_signed_in">Non hai effettuato l\'accesso</string>
+    <string name="premium_active_celebration">Sei Premium! 🎉</string>
+    <string name="monthly_subscription_active">Abbonamento mensile attivo</string>
+    <string name="yearly_subscription_active">Abbonamento annuale attivo</string>
+    <string name="lifetime_license">Licenza lifetime</string>
+    <string name="subscription_active">Abbonamento attivo</string>
+    <string name="information">Informazioni</string>
+    <string name="app_version">VoiceTasker v%1$s</string>
+    <string name="developed_in_italy">Sviluppato con ❤️ in Italia</string>
+    <string name="debug_title">🔧 Debug</string>
+    <string name="simulate_premium">Simula Premium</string>
+    <string name="debug_status_premium">Stato: PREMIUM ✅</string>
+    <string name="debug_status_free">Stato: FREE</string>
+    <string name="debug_only_notice">⚠️ Solo per test — non appare in release</string>
+    <string name="sign_out_confirmation">Sei sicuro di voler uscire? I tuoi dati rimarranno salvati.</string>
+    <string name="sign_out">Esci</string>
+
+    <!-- User-facing processing errors -->
+    <string name="ai_authentication_required">Accedi per elaborare con AI</string>
+    <string name="ai_timeout">Elaborazione AI scaduta. Puoi salvare la nota senza elaborazione.</string>
+    <string name="ai_rate_limited">Troppe richieste AI. Riprova più tardi o salva la nota.</string>
+    <string name="ai_network_error">Rete non disponibile. Puoi salvare la nota senza elaborazione AI.</string>
+    <string name="ai_invalid_response">Risposta AI non valida. Puoi salvare la nota originale.</string>
+    <string name="ai_server_error">Servizio AI non disponibile. Puoi salvare la nota originale.</string>
+    <string name="speech_recognition_unavailable">Riconoscimento vocale non disponibile</string>
+    <string name="microphone_permission_denied">Permessi microfono non concessi</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_reminders">Promemoria</string>
+    <string name="notification_reminder_title">Promemoria VoiceTasker</string>
+    <string name="notification_reminder_text">Hai un impegno in programma!</string>
+</resources>

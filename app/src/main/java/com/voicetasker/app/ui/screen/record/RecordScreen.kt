@@ -23,11 +23,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.voicetasker.app.R
+import com.voicetasker.app.ui.resources.asString
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -63,9 +66,9 @@ fun RecordScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Registra nota") },
-                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
-                actions = { if (!uiState.isRecording && uiState.transcription.isNotBlank()) { IconButton(onClick = viewModel::saveNote) { Icon(Icons.Filled.Check, "Salva", tint = MaterialTheme.colorScheme.primary) } } },
+            TopAppBar(title = { Text(stringResource(R.string.record_note)) },
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
+                actions = { if (!uiState.isRecording && uiState.transcription.isNotBlank()) { IconButton(onClick = viewModel::saveNote) { Icon(Icons.Filled.Check, stringResource(R.string.save), tint = MaterialTheme.colorScheme.primary) } } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background))
         }, containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
@@ -88,7 +91,7 @@ fun RecordScreen(
             // Max duration label
             val maxMin = (uiState.maxDurationMs / 60000).toInt()
             Text(
-                if (uiState.isPremium) "Max ${maxMin} min" else "Max ${maxMin} min (Free)",
+                stringResource(if (uiState.isPremium) R.string.max_recording_minutes else R.string.max_recording_minutes_free, maxMin),
                 style = MaterialTheme.typography.labelSmall,
                 color = if (uiState.recordingDurationMs >= uiState.maxDurationMs * 0.8) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -97,18 +100,18 @@ fun RecordScreen(
             // Record button
             FloatingActionButton(onClick = ::onRecordClick,
                 containerColor = if (uiState.isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, modifier = Modifier.size(64.dp)) {
-                Icon(if (uiState.isRecording) Icons.Filled.Stop else Icons.Filled.Mic, "Registra", Modifier.size(28.dp), tint = Color.White)
+                Icon(if (uiState.isRecording) Icons.Filled.Stop else Icons.Filled.Mic, stringResource(R.string.record), Modifier.size(28.dp), tint = Color.White)
             }
             Spacer(Modifier.height(8.dp))
-            Text(if (uiState.isRecording) "Tocca per fermare" else if (uiState.transcription.isNotBlank()) "Completata" else "Tocca per registrare", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(if (uiState.isRecording) R.string.tap_to_stop else if (uiState.transcription.isNotBlank()) R.string.recording_completed else R.string.tap_to_record), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             // Error message
             uiState.errorMessage?.let { msg ->
                 Spacer(Modifier.height(8.dp))
-                Text(msg, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Text(msg.asString(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 if (uiState.authenticationRequired) {
                     TextButton(onClick = onNavigateToLogin) {
-                        Text("Accedi")
+                        Text(stringResource(R.string.sign_in))
                     }
                 }
             }
@@ -123,7 +126,7 @@ fun RecordScreen(
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.width(8.dp))
-                            Text("✨ Gemini sta analizzando la nota...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(R.string.gemini_analyzing_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                     Spacer(Modifier.height(12.dp))
@@ -135,14 +138,14 @@ fun RecordScreen(
                     ) {
                         Icon(Icons.Filled.AutoAwesome, null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Elabora con AI")
+                        Text(stringResource(R.string.process_with_ai))
                     }
                     Spacer(Modifier.height(12.dp))
                 }
 
                 // Title
                 OutlinedTextField(uiState.title, viewModel::onTitleChanged, Modifier.fillMaxWidth(),
-                    label = { Text(if (uiState.aiTitleSuggestion != null) "Titolo (suggerito da AI ✨)" else "Titolo") },
+                    label = { Text(stringResource(if (uiState.aiTitleSuggestion != null) R.string.note_title_ai_suggested else R.string.note_title)) },
                     singleLine = true, shape = MaterialTheme.shapes.medium,
                     leadingIcon = { Icon(Icons.Filled.Title, null) })
                 Spacer(Modifier.height(12.dp))
@@ -150,7 +153,7 @@ fun RecordScreen(
                 // Transcription
                 OutlinedTextField(uiState.transcription, viewModel::onTranscriptionChanged,
                     Modifier.fillMaxWidth().heightIn(min = 100.dp),
-                    label = { Text("Descrizione") }, shape = MaterialTheme.shapes.medium,
+                    label = { Text(stringResource(R.string.description)) }, shape = MaterialTheme.shapes.medium,
                     leadingIcon = { Icon(Icons.Filled.Notes, null) })
                 Spacer(Modifier.height(12.dp))
 
@@ -158,7 +161,7 @@ fun RecordScreen(
                 OutlinedButton(onClick = { showDatePicker = true }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
                     Icon(Icons.Filled.CalendarMonth, null)
                     Spacer(Modifier.width(8.dp))
-                    Text(if (uiState.noteDate.isNotBlank()) "📅 ${uiState.noteDate}" else "📅 ${df.format(Date(uiState.scheduledDate))}")
+                    Text(stringResource(R.string.date_value, if (uiState.noteDate.isNotBlank()) uiState.noteDate else df.format(Date(uiState.scheduledDate))))
                 }
                 Spacer(Modifier.height(12.dp))
 
@@ -166,20 +169,20 @@ fun RecordScreen(
                 OutlinedButton(onClick = { showTimePicker = true }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
                     Icon(Icons.Filled.AccessTime, null)
                     Spacer(Modifier.width(8.dp))
-                    Text(if (uiState.noteTime.isNotBlank()) "🕐 ${uiState.noteTime}" + if (uiState.aiTitleSuggestion != null) " (AI ✨)" else "" else "🕐 Imposta ora")
+                    Text(if (uiState.noteTime.isNotBlank()) stringResource(if (uiState.aiTitleSuggestion != null) R.string.time_value_ai else R.string.time_value, uiState.noteTime) else stringResource(R.string.set_time))
                 }
                 Spacer(Modifier.height(12.dp))
 
                 // Location
                 OutlinedTextField(uiState.location, viewModel::onLocationChanged, Modifier.fillMaxWidth(),
-                    label = { Text(if (uiState.location.isNotBlank()) "Dove (estratto da AI ✨)" else "Dove") },
+                    label = { Text(stringResource(if (uiState.location.isNotBlank()) R.string.location_ai_extracted else R.string.location)) },
                     singleLine = true, shape = MaterialTheme.shapes.medium,
                     leadingIcon = { Icon(Icons.Filled.LocationOn, null) },
-                    placeholder = { Text("es. Ufficio, Roma...") })
+                    placeholder = { Text(stringResource(R.string.location_example)) })
                 Spacer(Modifier.height(16.dp))
 
                 // Category
-                Text("Categoria" + if (uiState.selectedCategoryId != null && uiState.aiTitleSuggestion != null) " (suggerita da AI ✨)" else "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(if (uiState.selectedCategoryId != null && uiState.aiTitleSuggestion != null) R.string.category_ai_suggested else R.string.category), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     uiState.categories.forEach { cat ->
@@ -201,7 +204,7 @@ fun RecordScreen(
                 Button(onClick = viewModel::saveNote, Modifier.fillMaxWidth().height(52.dp), shape = MaterialTheme.shapes.medium,
                     enabled = uiState.title.isNotBlank() || uiState.transcription.isNotBlank()) {
                     Icon(Icons.Filled.Save, null); Spacer(Modifier.width(8.dp))
-                    Text("Salva nota", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.save_note), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 }
                 Spacer(Modifier.height(32.dp))
             }
@@ -212,8 +215,8 @@ fun RecordScreen(
     if (showDatePicker) {
         val dps = rememberDatePickerState(initialSelectedDateMillis = uiState.scheduledDate)
         DatePickerDialog(onDismissRequest = { showDatePicker = false },
-            confirmButton = { TextButton(onClick = { dps.selectedDateMillis?.let { viewModel.onScheduledDateChanged(it) }; showDatePicker = false }) { Text("OK") } },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Annulla") } }
+            confirmButton = { TextButton(onClick = { dps.selectedDateMillis?.let { viewModel.onScheduledDateChanged(it) }; showDatePicker = false }) { Text(stringResource(R.string.confirm)) } },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) } }
         ) { DatePicker(state = dps) }
     }
 
@@ -223,10 +226,10 @@ fun RecordScreen(
         val initialMinute = uiState.noteTime.split(":").getOrNull(1)?.toIntOrNull() ?: 0
         val tps = rememberTimePickerState(initialHour = initialHour, initialMinute = initialMinute, is24Hour = true)
         AlertDialog(onDismissRequest = { showTimePicker = false },
-            title = { Text("Seleziona ora") },
+            title = { Text(stringResource(R.string.select_time)) },
             text = { TimePicker(state = tps) },
-            confirmButton = { TextButton(onClick = { viewModel.onTimeChanged(String.format("%02d:%02d", tps.hour, tps.minute)); showTimePicker = false }) { Text("OK") } },
-            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text("Annulla") } }
+            confirmButton = { TextButton(onClick = { viewModel.onTimeChanged(String.format("%02d:%02d", tps.hour, tps.minute)); showTimePicker = false }) { Text(stringResource(R.string.confirm)) } },
+            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 }

@@ -10,6 +10,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import com.voicetasker.app.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -70,7 +71,7 @@ class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val 
 
     fun startListening() {
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            _state.value = TranscriptionState.Error("Riconoscimento vocale non disponibile")
+            _state.value = TranscriptionState.Error(context.getString(R.string.speech_recognition_unavailable))
             return
         }
         isListening = true
@@ -132,7 +133,7 @@ class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val 
 
             when (error) {
                 SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> {
-                    _state.value = TranscriptionState.Error("Permessi microfono non concessi")
+                    _state.value = TranscriptionState.Error(context.getString(R.string.microphone_permission_denied))
                     return
                 }
                 SpeechRecognizer.ERROR_NO_MATCH,

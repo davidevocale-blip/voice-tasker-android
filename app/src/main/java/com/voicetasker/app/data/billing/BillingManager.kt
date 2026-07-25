@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.android.billingclient.api.*
+import com.voicetasker.app.R
 import com.voicetasker.app.data.auth.SupabaseAuthManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -223,7 +224,7 @@ class BillingManager @Inject constructor(
             ?.offerToken
             ?: productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken
             ?: run {
-                _state.update { it.copy(purchaseError = "Piano non disponibile") }
+                _state.update { it.copy(purchaseError = context.getString(R.string.plan_unavailable)) }
                 return
             }
 
@@ -279,7 +280,7 @@ class BillingManager @Inject constructor(
                 _state.update {
                     it.copy(
                         purchaseInProgress = false,
-                        purchaseError = "Errore durante l'acquisto: ${result.debugMessage}"
+                        purchaseError = context.getString(R.string.purchase_error, result.debugMessage)
                     )
                 }
             }
@@ -298,7 +299,7 @@ class BillingManager @Inject constructor(
             val ackResult = billingClient.acknowledgePurchase(ackParams)
             if (ackResult.responseCode != BillingClient.BillingResponseCode.OK) {
                 Log.e(TAG, "Acknowledge failed: ${ackResult.debugMessage}")
-                _state.update { it.copy(purchaseInProgress = false, purchaseError = "Errore nella conferma dell'acquisto") }
+                _state.update { it.copy(purchaseInProgress = false, purchaseError = context.getString(R.string.purchase_confirmation_error)) }
                 return
             }
         }

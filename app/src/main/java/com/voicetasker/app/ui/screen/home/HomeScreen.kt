@@ -55,11 +55,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.voicetasker.app.R
 import com.voicetasker.app.domain.model.Note
 import com.voicetasker.app.ui.theme.Gold40
 import com.voicetasker.app.ui.theme.Purple40
@@ -81,17 +84,17 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     Scaffold(
-        topBar = { TopAppBar(title = { Text("VoiceTasker", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SmallFloatingActionButton(
                     onClick = { if (uiState.isPremium || uiState.freeNotesRemaining > 0) onNavigateToAddNote() else onNavigateToPaywall("note_limit") },
                     containerColor = MaterialTheme.colorScheme.secondaryContainer
-                ) { Icon(Icons.Filled.Edit, "Nota manuale", tint = MaterialTheme.colorScheme.onSecondaryContainer) }
+                ) { Icon(Icons.Filled.Edit, stringResource(R.string.manual_note_action_content_description), tint = MaterialTheme.colorScheme.onSecondaryContainer) }
                 FloatingActionButton(
                     onClick = { if (uiState.isPremium || uiState.freeNotesRemaining > 0) onNavigateToRecord() else onNavigateToPaywall("note_limit") },
                     containerColor = MaterialTheme.colorScheme.primary
-                ) { Icon(Icons.Filled.Mic, "Registra", tint = Color.White) }
+                ) { Icon(Icons.Filled.Mic, stringResource(R.string.record), tint = Color.White) }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -105,17 +108,17 @@ fun HomeScreen(
                             Icon(Icons.Filled.Star, null, tint = Gold40)
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
-                                Text("Passa a Premium", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                                Text("${uiState.freeNotesRemaining} note gratuite rimanenti", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(0.8f))
+                                Text(stringResource(R.string.upgrade_to_premium), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text(pluralStringResource(R.plurals.free_notes_remaining, uiState.freeNotesRemaining, uiState.freeNotesRemaining), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(0.8f))
                             }
-                            Button(onClick = { onNavigateToPaywall("upgrade") }, colors = ButtonDefaults.buttonColors(containerColor = Gold40, contentColor = Purple40), shape = MaterialTheme.shapes.small) { Text("Upgrade", fontWeight = FontWeight.Bold) }
+                            Button(onClick = { onNavigateToPaywall("upgrade") }, colors = ButtonDefaults.buttonColors(containerColor = Gold40, contentColor = Purple40), shape = MaterialTheme.shapes.small) { Text(stringResource(R.string.upgrade), fontWeight = FontWeight.Bold) }
                         }
                     }
                 }
             }
             // Search
             item {
-                OutlinedTextField(uiState.searchQuery, viewModel::onSearchQueryChanged, Modifier.fillMaxWidth(), placeholder = { Text("Cerca nelle note...") }, leadingIcon = { Icon(Icons.Filled.Search, "Cerca") }, singleLine = true, shape = MaterialTheme.shapes.medium)
+                OutlinedTextField(uiState.searchQuery, viewModel::onSearchQueryChanged, Modifier.fillMaxWidth(), placeholder = { Text(stringResource(R.string.search_notes_hint)) }, leadingIcon = { Icon(Icons.Filled.Search, stringResource(R.string.search)) }, singleLine = true, shape = MaterialTheme.shapes.medium)
             }
             // Category chips
             if (uiState.categories.isNotEmpty()) {
@@ -142,8 +145,8 @@ fun HomeScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Outlined.MicNone, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.5f))
                             Spacer(Modifier.height(16.dp))
-                            Text("Nessuna nota", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Premi 🎤 per registrare o ✏️ per scrivere", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f))
+                            Text(stringResource(R.string.no_notes), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.no_notes_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f))
                         }
                     }
                 }
@@ -171,9 +174,9 @@ private fun NoteCardItem(note: Note, catColor: Color, catName: String, onDelete:
             Box(Modifier.size(4.dp, 48.dp).clip(CircleShape).background(catColor).align(Alignment.CenterVertically))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(note.title.ifBlank { "Nota" }, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(note.title.ifBlank { stringResource(R.string.note) }, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(4.dp))
-                Text(note.transcription.ifBlank { "Nessun contenuto" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(note.transcription.ifBlank { stringResource(R.string.no_content) }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceVariant.copy(0.5f)) {
@@ -186,7 +189,7 @@ private fun NoteCardItem(note: Note, catColor: Color, catName: String, onDelete:
                 }
             }
             IconButton(onClick = onDelete, modifier = Modifier.align(Alignment.CenterVertically).size(36.dp)) {
-                Icon(Icons.Filled.Delete, "Elimina", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error.copy(0.7f))
+                Icon(Icons.Filled.Delete, stringResource(R.string.delete), Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error.copy(0.7f))
             }
         }
     }
