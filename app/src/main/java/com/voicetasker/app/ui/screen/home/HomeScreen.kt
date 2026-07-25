@@ -1,72 +1,50 @@
 package com.voicetasker.app.ui.screen.home
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.MicNone
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.SmallFloatingActionButton
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.voicetasker.app.R
-import com.voicetasker.app.domain.model.Note
-import com.voicetasker.app.ui.theme.Gold40
-import com.voicetasker.app.ui.theme.Purple40
-import com.voicetasker.app.ui.theme.Purple60
+import com.voicetasker.app.ui.component.VoiceTaskerCategoryChip
+import com.voicetasker.app.ui.component.VoiceTaskerNoteCard
+import com.voicetasker.app.ui.component.VoiceTaskerPremiumBanner
+import com.voicetasker.app.ui.component.VoiceTaskerSearchField
+import com.voicetasker.app.ui.component.VoiceTaskerStatePanel
+import com.voicetasker.app.ui.component.VoiceTaskerStatePanelMode
+import com.voicetasker.app.ui.theme.VoiceTaskerSizing
+import com.voicetasker.app.ui.theme.VoiceTaskerSpacing
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -83,114 +61,142 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val dateFormat = SimpleDateFormat("dd MMM, HH:mm", Locale.ITALIAN)
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.headlineLarge
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        },
         floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(VoiceTaskerSpacing.sm)
+            ) {
                 SmallFloatingActionButton(
                     onClick = { if (uiState.isPremium || uiState.freeNotesRemaining > 0) onNavigateToAddNote() else onNavigateToPaywall("note_limit") },
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                ) { Icon(Icons.Filled.Edit, stringResource(R.string.manual_note_action_content_description), tint = MaterialTheme.colorScheme.onSecondaryContainer) }
+                    modifier = Modifier.size(VoiceTaskerSizing.secondaryFab),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = stringResource(R.string.manual_note_action_content_description)
+                    )
+                }
                 FloatingActionButton(
                     onClick = { if (uiState.isPremium || uiState.freeNotesRemaining > 0) onNavigateToRecord() else onNavigateToPaywall("note_limit") },
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) { Icon(Icons.Filled.Mic, stringResource(R.string.record), tint = Color.White) }
+                    modifier = Modifier.size(VoiceTaskerSizing.primaryFab),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Mic,
+                        contentDescription = stringResource(R.string.record)
+                    )
+                }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Premium banner
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(
+                start = VoiceTaskerSpacing.md,
+                top = VoiceTaskerSpacing.xs,
+                end = VoiceTaskerSpacing.md,
+                bottom = VoiceTaskerSpacing.md
+            ),
+            verticalArrangement = Arrangement.spacedBy(VoiceTaskerSpacing.sm)
+        ) {
             if (!uiState.isPremium) {
                 item {
-                    Box(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(Purple40, Purple60)), MaterialTheme.shapes.medium).padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Star, null, tint = Gold40)
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(stringResource(R.string.upgrade_to_premium), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                                Text(pluralStringResource(R.plurals.free_notes_remaining, uiState.freeNotesRemaining, uiState.freeNotesRemaining), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(0.8f))
-                            }
-                            Button(onClick = { onNavigateToPaywall("upgrade") }, colors = ButtonDefaults.buttonColors(containerColor = Gold40, contentColor = Purple40), shape = MaterialTheme.shapes.small) { Text(stringResource(R.string.upgrade), fontWeight = FontWeight.Bold) }
-                        }
-                    }
+                    VoiceTaskerPremiumBanner(
+                        title = stringResource(R.string.upgrade_to_premium),
+                        subtitle = pluralStringResource(
+                            R.plurals.free_notes_remaining,
+                            uiState.freeNotesRemaining,
+                            uiState.freeNotesRemaining
+                        ),
+                        actionLabel = stringResource(R.string.upgrade),
+                        onAction = { onNavigateToPaywall("upgrade") }
+                    )
                 }
             }
-            // Search
+
             item {
-                OutlinedTextField(uiState.searchQuery, viewModel::onSearchQueryChanged, Modifier.fillMaxWidth(), placeholder = { Text(stringResource(R.string.search_notes_hint)) }, leadingIcon = { Icon(Icons.Filled.Search, stringResource(R.string.search)) }, singleLine = true, shape = MaterialTheme.shapes.medium)
+                VoiceTaskerSearchField(
+                    value = uiState.searchQuery,
+                    onValueChange = viewModel::onSearchQueryChanged,
+                    placeholder = stringResource(R.string.search_notes_hint),
+                    searchContentDescription = stringResource(R.string.search)
+                )
             }
-            // Category chips
+
             if (uiState.categories.isNotEmpty()) {
                 item {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(VoiceTaskerSpacing.xs)) {
                         items(uiState.categories) { cat ->
-                            val color = try { Color(android.graphics.Color.parseColor(cat.colorHex)) } catch (_: Exception) { MaterialTheme.colorScheme.primary }
-                            val sel = uiState.selectedCategoryId == cat.id
-                            Surface(onClick = { viewModel.onCategoryFilterChanged(cat.id) }, shape = MaterialTheme.shapes.small, color = if (sel) color.copy(0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(0.5f)) {
-                                Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Box(Modifier.size(10.dp).clip(CircleShape).background(color))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(cat.name, style = MaterialTheme.typography.labelMedium, color = if (sel) color else MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
+                            val color = try {
+                                Color(android.graphics.Color.parseColor(cat.colorHex))
+                            } catch (_: Exception) {
+                                MaterialTheme.colorScheme.primary
                             }
+                            VoiceTaskerCategoryChip(
+                                label = cat.name,
+                                categoryColor = color,
+                                selected = uiState.selectedCategoryId == cat.id,
+                                onClick = { viewModel.onCategoryFilterChanged(cat.id) }
+                            )
                         }
                     }
                 }
             }
-            // Notes
+
+            if (uiState.isLoading) {
+                item {
+                    VoiceTaskerStatePanel(mode = VoiceTaskerStatePanelMode.Loading)
+                }
+            }
+
             if (uiState.notes.isEmpty() && !uiState.isLoading) {
                 item {
-                    Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Outlined.MicNone, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.5f))
-                            Spacer(Modifier.height(16.dp))
-                            Text(stringResource(R.string.no_notes), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(stringResource(R.string.no_notes_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f))
-                        }
-                    }
+                    VoiceTaskerStatePanel(
+                        mode = VoiceTaskerStatePanelMode.Empty,
+                        title = stringResource(R.string.no_notes),
+                        message = stringResource(R.string.no_notes_hint),
+                        icon = Icons.Outlined.MicNone
+                    )
                 }
             }
+
             items(uiState.notes, key = { it.id }) { note ->
-                NoteCardItem(
-                    note = note,
-                    catColor = viewModel.getCategoryColor(note.categoryId),
-                    catName = viewModel.getCategoryName(note.categoryId),
+                VoiceTaskerNoteCard(
+                    title = note.title.ifBlank { stringResource(R.string.note) },
+                    content = note.transcription.ifBlank { stringResource(R.string.no_content) },
+                    categoryColor = viewModel.getCategoryColor(note.categoryId),
+                    categoryName = viewModel.getCategoryName(note.categoryId),
+                    dateTime = dateFormat.format(Date(note.scheduledDate)),
+                    deleteContentDescription = stringResource(R.string.delete),
                     onDelete = { viewModel.deleteNote(note.id) },
                     onClick = { onNavigateToNoteDetail(note.id) },
                     modifier = Modifier.animateItem(fadeInSpec = tween(300), fadeOutSpec = tween(300))
                 )
             }
-            item { Spacer(Modifier.height(80.dp)) }
-        }
-    }
-}
-
-@Composable
-private fun NoteCardItem(note: Note, catColor: Color, catName: String, onDelete: () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val df = SimpleDateFormat("dd MMM, HH:mm", Locale.ITALIAN)
-    Card(onClick = onClick, modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp), shape = MaterialTheme.shapes.medium) {
-        Row(Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp)) {
-            Box(Modifier.size(4.dp, 48.dp).clip(CircleShape).background(catColor).align(Alignment.CenterVertically))
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(note.title.ifBlank { stringResource(R.string.note) }, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(4.dp))
-                Text(note.transcription.ifBlank { stringResource(R.string.no_content) }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceVariant.copy(0.5f)) {
-                        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(8.dp).clip(CircleShape).background(catColor)); Spacer(Modifier.width(4.dp)); Text(catName, style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Filled.AccessTime, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.width(4.dp)); Text(df.format(Date(note.scheduledDate)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                }
-            }
-            IconButton(onClick = onDelete, modifier = Modifier.align(Alignment.CenterVertically).size(36.dp)) {
-                Icon(Icons.Filled.Delete, stringResource(R.string.delete), Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error.copy(0.7f))
-            }
+            item { Spacer(Modifier.height(VoiceTaskerSpacing.huge)) }
         }
     }
 }
