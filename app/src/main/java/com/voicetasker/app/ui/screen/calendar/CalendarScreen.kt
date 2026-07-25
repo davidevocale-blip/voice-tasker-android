@@ -17,12 +17,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.voicetasker.app.R
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -38,10 +40,18 @@ fun CalendarScreen(onNavigateToNoteDetail: (Long) -> Unit, viewModel: CalendarVi
     val daysInMonth = cm.getActualMaximum(Calendar.DAY_OF_MONTH)
     val firstDow = Calendar.getInstance().apply { set(cm.get(Calendar.YEAR), cm.get(Calendar.MONTH), 1) }.get(Calendar.DAY_OF_WEEK)
     val startOffset = (firstDow + 5) % 7
-    val dayNames = listOf("L", "M", "M", "G", "V", "S", "D")
+    val dayNames = listOf(
+        stringResource(R.string.weekday_monday_short),
+        stringResource(R.string.weekday_tuesday_short),
+        stringResource(R.string.weekday_wednesday_short),
+        stringResource(R.string.weekday_thursday_short),
+        stringResource(R.string.weekday_friday_short),
+        stringResource(R.string.weekday_saturday_short),
+        stringResource(R.string.weekday_sunday_short)
+    )
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Calendario", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.calendar_title), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp)) {
@@ -49,9 +59,9 @@ fun CalendarScreen(onNavigateToNoteDetail: (Long) -> Unit, viewModel: CalendarVi
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = MaterialTheme.shapes.large, elevation = CardDefaults.cardElevation(2.dp)) {
                     Column(Modifier.padding(12.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { viewModel.onMonthChanged(-1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Prev") }
+                            IconButton(onClick = { viewModel.onMonthChanged(-1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(R.string.previous_month)) }
                             Text(mf.format(cm.time).replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                            IconButton(onClick = { viewModel.onMonthChanged(1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Next") }
+                            IconButton(onClick = { viewModel.onMonthChanged(1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(R.string.next_month)) }
                         }
                         Row(Modifier.fillMaxWidth()) { dayNames.forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
                         Spacer(Modifier.height(4.dp))
@@ -96,11 +106,11 @@ fun CalendarScreen(onNavigateToNoteDetail: (Long) -> Unit, viewModel: CalendarVi
             }
             item {
                 Spacer(Modifier.height(16.dp))
-                Text("Note del giorno", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.notes_for_day), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
             }
             if (uiState.notesForDate.isEmpty()) {
-                item { Text("Nessun impegno", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp)) }
+                item { Text(stringResource(R.string.no_commitments), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp)) }
             } else {
                 items(uiState.notesForDate, key = { it.id }) { note ->
                     val catColor = viewModel.getCategoryColor(note.categoryId)
@@ -110,7 +120,7 @@ fun CalendarScreen(onNavigateToNoteDetail: (Long) -> Unit, viewModel: CalendarVi
                             Box(Modifier.size(4.dp, 48.dp).clip(CircleShape).background(catColor))
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
-                                Text(note.title.ifBlank { "Nota vocale" }, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(note.title.ifBlank { stringResource(R.string.voice_note) }, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(note.transcription.take(80), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     // Category chip

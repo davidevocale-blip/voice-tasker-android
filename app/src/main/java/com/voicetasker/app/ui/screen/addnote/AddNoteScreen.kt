@@ -1,5 +1,6 @@
 package com.voicetasker.app.ui.screen.addnote
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,12 +15,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.voicetasker.app.R
 import com.voicetasker.app.domain.ai.NoteAiProcessor
 import com.voicetasker.app.domain.ai.NoteAiResult
 import com.voicetasker.app.domain.ai.toFallback
@@ -30,6 +33,9 @@ import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
 import com.voicetasker.app.util.FeedbackManager
+import com.voicetasker.app.ui.resources.labelRes
+import com.voicetasker.app.ui.resources.messageRes
+import com.voicetasker.app.ui.resources.StringResolver
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,12 +61,13 @@ data class AddNoteUiState(
     val aiTitleSuggestion: String? = null,
     val location: String = "",
     val noteTime: String = "",
-    val aiErrorMessage: String? = null,
+    @StringRes val aiErrorRes: Int? = null,
     val authenticationRequired: Boolean = false
 )
 
 @HiltViewModel
 class AddNoteViewModel @Inject constructor(
+    private val stringResolver: StringResolver,
     private val noteRepository: NoteRepository,
     private val categoryRepository: CategoryRepository,
     private val reminderRepository: ReminderRepository,
@@ -99,7 +106,7 @@ class AddNoteViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isAiProcessing = true,
-                    aiErrorMessage = null,
+                    aiErrorRes = null,
                     authenticationRequired = false
                 )
             }
@@ -115,7 +122,7 @@ class AddNoteViewModel @Inject constructor(
                 if (result !is NoteAiResult.Success) {
                     return@update s.copy(
                         isAiProcessing = false,
-                        aiErrorMessage = fallback.message,
+                        aiErrorRes = fallback.failureReason?.messageRes(),
                         authenticationRequired = fallback.authenticationRequired
                     )
                 }
@@ -123,7 +130,7 @@ class AddNoteViewModel @Inject constructor(
                 val metadata = result.metadata
                 var updated = s.copy(
                     isAiProcessing = false,
-                    aiErrorMessage = null,
+                        aiErrorRes = null,
                     authenticationRequired = false
                 )
                 if (metadata.title.isNotBlank() && s.title.isBlank()) {
@@ -157,7 +164,7 @@ class AddNoteViewModel @Inject constructor(
             val now = System.currentTimeMillis()
             val noteId = noteRepository.insertNote(
                 Note(
-                    title = s.title.ifBlank { "Nota manuale" },
+                    title = s.title.ifBlank { stringResolver.resolve(R.string.manual_note_fallback_title) },
                     transcription = s.content,
                     audioFilePath = "",
                     categoryId = s.selectedCategoryId ?: 1,
@@ -195,9 +202,9 @@ fun AddNoteScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Nuova nota") },
-                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro") } },
-                actions = { IconButton(onClick = viewModel::saveNote, enabled = uiState.title.isNotBlank() || uiState.content.isNotBlank()) { Icon(Icons.Filled.Check, "Salva", tint = MaterialTheme.colorScheme.primary) } },
+            TopAppBar(title = { Text(stringResource(R.string.new_note)) },
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
+                actions = { IconButton(onClick = viewModel::saveNote, enabled = uiState.title.isNotBlank() || uiState.content.isNotBlank()) { Icon(Icons.Filled.Check, stringResource(R.string.save), tint = MaterialTheme.colorScheme.primary) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background))
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -207,7 +214,7 @@ fun AddNoteScreen(
         ) {
             // Title
             OutlinedTextField(uiState.title, viewModel::onTitleChanged, Modifier.fillMaxWidth(),
-                label = { Text(if (uiState.aiTitleSuggestion != null) "Titolo (suggerito da AI ✨)" else "Titolo") },
+                label = { Text(stringResource(if (uiState.aiTitleSuggestion != null) R.string.note_title_ai_suggested else R.string.note_title)) },
                 singleLine = true, shape = MaterialTheme.shapes.medium,
                 leadingIcon = { Icon(Icons.Filled.Title, null) })
             Spacer(Modifier.height(16.dp))
@@ -215,7 +222,7 @@ fun AddNoteScreen(
             // Content
             OutlinedTextField(uiState.content, viewModel::onContentChanged,
                 Modifier.fillMaxWidth().heightIn(min = 150.dp),
-                label = { Text("Contenuto della nota") }, shape = MaterialTheme.shapes.medium,
+                label = { Text(stringResource(R.string.note_content)) }, shape = MaterialTheme.shapes.medium,
                 leadingIcon = { Icon(Icons.Filled.Notes, null) })
             Spacer(Modifier.height(12.dp))
 
@@ -226,22 +233,22 @@ fun AddNoteScreen(
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.width(8.dp))
-                            Text("✨ Gemini sta analizzando...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(R.string.gemini_analyzing), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 } else {
                     OutlinedButton(onClick = viewModel::requestAiSuggestions, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
-                        Text("✨"); Spacer(Modifier.width(8.dp)); Text("Suggerisci con Gemini AI")
+                        Text(stringResource(R.string.gemini_icon)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.suggest_with_gemini))
                     }
                 }
             }
 
-            uiState.aiErrorMessage?.let { message ->
+            uiState.aiErrorRes?.let { messageRes ->
                 Spacer(Modifier.height(8.dp))
-                Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(messageRes), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 if (uiState.authenticationRequired) {
                     TextButton(onClick = onNavigateToLogin) {
-                        Text("Accedi")
+                        Text(stringResource(R.string.sign_in))
                     }
                 }
             }
@@ -251,7 +258,7 @@ fun AddNoteScreen(
             Spacer(Modifier.height(16.dp))
 
             // Date
-            Text("Data programmata", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.scheduled_date), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             OutlinedButton(onClick = { showDatePicker = true }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
                 Icon(Icons.Filled.CalendarMonth, null); Spacer(Modifier.width(8.dp))
@@ -262,22 +269,22 @@ fun AddNoteScreen(
             // Time
             OutlinedButton(onClick = { showTimePicker = true }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
                 Icon(Icons.Filled.AccessTime, null); Spacer(Modifier.width(8.dp))
-                Text(if (uiState.noteTime.isNotBlank()) "🕐 ${uiState.noteTime}" else "🕐 Imposta ora")
+                Text(if (uiState.noteTime.isNotBlank()) stringResource(R.string.time_value, uiState.noteTime) else stringResource(R.string.set_time))
             }
             Spacer(Modifier.height(12.dp))
 
             // Location
             OutlinedTextField(uiState.location, viewModel::onLocationChanged, Modifier.fillMaxWidth(),
-                label = { Text("Dove") }, singleLine = true, shape = MaterialTheme.shapes.medium,
+                label = { Text(stringResource(R.string.location)) }, singleLine = true, shape = MaterialTheme.shapes.medium,
                 leadingIcon = { Icon(Icons.Filled.LocationOn, null) },
-                placeholder = { Text("es. Ufficio, Roma...") })
+                placeholder = { Text(stringResource(R.string.location_example)) })
 
             Spacer(Modifier.height(16.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             Spacer(Modifier.height(16.dp))
 
             // Category
-            Text("Categoria" + if (uiState.aiTitleSuggestion != null) " (suggerita da AI ✨)" else "",
+            Text(stringResource(if (uiState.aiTitleSuggestion != null) R.string.category_ai_suggested else R.string.category),
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -297,13 +304,13 @@ fun AddNoteScreen(
             Spacer(Modifier.height(20.dp))
 
             // Reminders
-            Text("Promemoria", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.reminders), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
             ReminderType.entries.forEach { type ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
                     Checkbox(checked = type in uiState.selectedReminders, onCheckedChange = { viewModel.onReminderToggled(type) },
                         colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary))
-                    Text(type.label, style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(type.labelRes()), style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
@@ -313,7 +320,7 @@ fun AddNoteScreen(
             Button(onClick = viewModel::saveNote, Modifier.fillMaxWidth().height(52.dp), shape = MaterialTheme.shapes.medium,
                 enabled = uiState.title.isNotBlank() || uiState.content.isNotBlank()) {
                 Icon(Icons.Filled.Save, null); Spacer(Modifier.width(8.dp))
-                Text("Salva nota", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.save_note), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(32.dp))
         }
@@ -323,8 +330,8 @@ fun AddNoteScreen(
     if (showDatePicker) {
         val dps = rememberDatePickerState(initialSelectedDateMillis = uiState.scheduledDate)
         DatePickerDialog(onDismissRequest = { showDatePicker = false },
-            confirmButton = { TextButton(onClick = { dps.selectedDateMillis?.let { viewModel.onDateChanged(it) }; showDatePicker = false }) { Text("OK") } },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Annulla") } }
+            confirmButton = { TextButton(onClick = { dps.selectedDateMillis?.let { viewModel.onDateChanged(it) }; showDatePicker = false }) { Text(stringResource(R.string.confirm)) } },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) } }
         ) { DatePicker(state = dps) }
     }
 
@@ -334,10 +341,10 @@ fun AddNoteScreen(
         val initialMinute = uiState.noteTime.split(":").getOrNull(1)?.toIntOrNull() ?: 0
         val tps = rememberTimePickerState(initialHour = initialHour, initialMinute = initialMinute, is24Hour = true)
         AlertDialog(onDismissRequest = { showTimePicker = false },
-            title = { Text("Seleziona ora") },
+            title = { Text(stringResource(R.string.select_time)) },
             text = { TimePicker(state = tps) },
-            confirmButton = { TextButton(onClick = { viewModel.onTimeChanged(String.format("%02d:%02d", tps.hour, tps.minute)); showTimePicker = false }) { Text("OK") } },
-            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text("Annulla") } }
+            confirmButton = { TextButton(onClick = { viewModel.onTimeChanged(String.format("%02d:%02d", tps.hour, tps.minute)); showTimePicker = false }) { Text(stringResource(R.string.confirm)) } },
+            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 }

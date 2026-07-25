@@ -19,9 +19,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.annotation.StringRes
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -29,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.voicetasker.app.R
 import com.voicetasker.app.ui.screen.addnote.AddNoteScreen
 import com.voicetasker.app.ui.screen.calendar.CalendarScreen
 import com.voicetasker.app.ui.screen.categories.CategoriesScreen
@@ -51,13 +54,13 @@ sealed class Screen(val route: String) {
     data object Paywall : Screen("paywall/{trigger}") { fun createRoute(trigger: String) = "paywall/$trigger" }
 }
 
-data class BottomNavItem(val screen: Screen, val label: String, val selected: ImageVector, val unselected: ImageVector)
+data class BottomNavItem(val screen: Screen, @StringRes val labelRes: Int, val selected: ImageVector, val unselected: ImageVector)
 
 val bottomNavItems = listOf(
-    BottomNavItem(Screen.Home, "Home", Icons.Filled.Home, Icons.Outlined.Home),
-    BottomNavItem(Screen.Calendar, "Calendario", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
-    BottomNavItem(Screen.Categories, "Categorie", Icons.Filled.Category, Icons.Outlined.Category),
-    BottomNavItem(Screen.Settings, "Impostazioni", Icons.Filled.Settings, Icons.Outlined.Settings)
+    BottomNavItem(Screen.Home, R.string.nav_home, Icons.Filled.Home, Icons.Outlined.Home),
+    BottomNavItem(Screen.Calendar, R.string.nav_calendar, Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
+    BottomNavItem(Screen.Categories, R.string.nav_categories, Icons.Filled.Category, Icons.Outlined.Category),
+    BottomNavItem(Screen.Settings, R.string.nav_settings, Icons.Filled.Settings, Icons.Outlined.Settings)
 )
 
 @Composable
@@ -71,9 +74,10 @@ fun NavGraph() {
         if (showBar) NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
             bottomNavItems.forEach { item ->
                 val sel = currentRoute == item.screen.route
+                val label = stringResource(item.labelRes)
                 NavigationBarItem(sel, onClick = { navController.navigate(item.screen.route) { popUpTo(navController.graph.findStartDestination().id) { saveState = true }; launchSingleTop = true; restoreState = true } },
-                    icon = { Icon(if (sel) item.selected else item.unselected, item.label) },
-                    label = { Text(item.label, style = MaterialTheme.typography.labelSmall) },
+                    icon = { Icon(if (sel) item.selected else item.unselected, label) },
+                    label = { Text(label, style = MaterialTheme.typography.labelSmall) },
                     colors = NavigationBarItemDefaults.colors(selectedIconColor = MaterialTheme.colorScheme.primary, selectedTextColor = MaterialTheme.colorScheme.primary, indicatorColor = MaterialTheme.colorScheme.primaryContainer))
             }
         }

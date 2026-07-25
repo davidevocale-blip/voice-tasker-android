@@ -2,10 +2,13 @@ package com.voicetasker.app.ui.screen.paywall
 
 import android.app.Activity
 import androidx.lifecycle.ViewModel
+import com.voicetasker.app.R
 import com.voicetasker.app.data.auth.SupabaseAuthManager
 import com.voicetasker.app.data.billing.BillingManager
 import com.voicetasker.app.data.billing.BillingState
+import com.voicetasker.app.ui.resources.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -17,7 +20,7 @@ data class PaywallUiState(
     val isLoggedIn: Boolean = false,
     val isPremium: Boolean = false,
     val purchaseInProgress: Boolean = false,
-    val purchaseError: String? = null,
+    val purchaseError: UiText? = null,
     val purchaseSuccess: Boolean = false
 )
 
@@ -27,15 +30,18 @@ class PaywallViewModel @Inject constructor(
     private val authManager: SupabaseAuthManager
 ) : ViewModel() {
 
+    private val localPurchaseError = MutableStateFlow<UiText?>(null)
+
     val uiState: StateFlow<PaywallUiState> = combine(
         authManager.currentUser,
-        billingManager.state
-    ) { user, billing ->
+        billingManager.state,
+        localPurchaseError
+    ) { user, billing, localError ->
         PaywallUiState(
             isLoggedIn = user != null,
             isPremium = billing.isPremium,
             purchaseInProgress = billing.purchaseInProgress,
-            purchaseError = billing.purchaseError,
+            purchaseError = localError ?: billing.purchaseError?.let { UiText.Dynamic(it) },
             purchaseSuccess = billing.purchaseSuccess
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PaywallUiState())
@@ -43,7 +49,7 @@ class PaywallViewModel @Inject constructor(
     fun launchMonthlyPurchase(activity: Activity) {
         val details = billingManager.state.value.monthlyDetails
         if (details == null) {
-            billingManager.setPurchaseError("Prodotto mensile non disponibile su Google Play (Play Console in configurazione).")
+            localPurchaseError.value = UiText.Resource(R.string.monthly_product_unavailable)
             return
         }
         billingManager.launchSubscriptionPurchase(activity, details, "monthly-base")
@@ -52,7 +58,7 @@ class PaywallViewModel @Inject constructor(
     fun launchYearlyPurchase(activity: Activity) {
         val details = billingManager.state.value.yearlyDetails
         if (details == null) {
-            billingManager.setPurchaseError("Prodotto annuale non disponibile su Google Play (Play Console in configurazione).")
+            localPurchaseError.value = UiText.Resource(R.string.yearly_product_unavailable)
             return
         }
         billingManager.launchSubscriptionPurchase(activity, details, "yearly-base")
@@ -61,13 +67,14 @@ class PaywallViewModel @Inject constructor(
     fun launchLifetimePurchase(activity: Activity) {
         val details = billingManager.state.value.lifetimeDetails
         if (details == null) {
-            billingManager.setPurchaseError("Prodotto Lifetime non disponibile su Google Play (Play Console in configurazione).")
+            localPurchaseError.value = UiText.Resource(R.string.lifetime_product_unavailable)
             return
         }
         billingManager.launchLifetimePurchase(activity, details)
     }
 
     fun clearPurchaseState() {
+        localPurchaseError.value = null
         billingManager.clearPurchaseState()
     }
 }

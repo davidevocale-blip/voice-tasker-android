@@ -19,11 +19,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.voicetasker.app.R
+import com.voicetasker.app.ui.resources.asString
 import com.voicetasker.app.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -47,27 +50,29 @@ fun PaywallScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val premiumWelcome = stringResource(R.string.premium_welcome)
+    val purchaseError = uiState.purchaseError?.asString()
 
     LaunchedEffect(uiState.purchaseSuccess) {
         if (uiState.purchaseSuccess) {
-            snackbarHostState.showSnackbar("🎉 Benvenuto in Premium!")
+            snackbarHostState.showSnackbar(premiumWelcome)
             viewModel.clearPurchaseState()
             onNavigateBack()
         }
     }
-    LaunchedEffect(uiState.purchaseError) {
-        uiState.purchaseError?.let { error ->
+    LaunchedEffect(purchaseError) {
+        purchaseError?.let { error ->
             snackbarHostState.showSnackbar(error)
             viewModel.clearPurchaseState()
         }
     }
 
     val triggerMessage = when (trigger) {
-        "note_limit" -> "Hai raggiunto il limite di 10 note gratuite"
-        "ai_feature" -> "Funzionalità Premium"
-        "reminder" -> "I promemoria sono una funzionalità Premium"
-        "recording_limit" -> "Le registrazioni oltre 1 minuto sono Premium"
-        else -> "Sblocca tutte le funzionalità"
+        "note_limit" -> stringResource(R.string.premium_trigger_note_limit)
+        "ai_feature" -> stringResource(R.string.premium_trigger_ai)
+        "reminder" -> stringResource(R.string.premium_trigger_reminder)
+        "recording_limit" -> stringResource(R.string.premium_trigger_recording_limit)
+        else -> stringResource(R.string.premium_trigger_default)
     }
 
     val triggerIcon = when (trigger) {
@@ -84,7 +89,7 @@ fun PaywallScreen(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Indietro")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -133,7 +138,7 @@ fun PaywallScreen(
             Spacer(Modifier.height(16.dp))
 
             Text(
-                "VoiceTasker Premium",
+                stringResource(R.string.voicetasker_premium),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -165,9 +170,9 @@ fun PaywallScreen(
 
             // Features list
             val features = listOf(
-                Triple(Icons.Filled.AllInclusive, "Note illimitate", "Crea tutte le note che vuoi"),
-                Triple(Icons.Filled.Notifications, "Promemoria smart", "Reminder personalizzati"),
-                Triple(Icons.Filled.Mic, "Registrazioni lunghe", "Fino a 10 minuti di registrazione")
+                Triple(Icons.Filled.AllInclusive, stringResource(R.string.feature_unlimited_notes), stringResource(R.string.feature_unlimited_notes_subtitle)),
+                Triple(Icons.Filled.Notifications, stringResource(R.string.feature_smart_reminders), stringResource(R.string.feature_smart_reminders_subtitle)),
+                Triple(Icons.Filled.Mic, stringResource(R.string.feature_long_recordings), stringResource(R.string.feature_long_recordings_subtitle))
             )
 
             features.forEach { (icon, title, subtitle) ->
@@ -193,13 +198,13 @@ fun PaywallScreen(
                         Icon(Icons.Filled.AccountCircle, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.5f))
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "Accedi per abbonarti",
+                            stringResource(R.string.sign_in_to_subscribe),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Devi effettuare l'accesso prima di acquistare Premium",
+                            stringResource(R.string.sign_in_before_purchase),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -212,7 +217,7 @@ fun PaywallScreen(
                         ) {
                             Icon(Icons.Filled.Login, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Accedi con Google", fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.sign_in_with_google), fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -234,8 +239,8 @@ fun PaywallScreen(
                         Spacer(Modifier.width(8.dp))
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Mensile — €3,99/mese", fontWeight = FontWeight.Bold)
-                        Text("Cancella quando vuoi", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(0.7f))
+                        Text(stringResource(R.string.monthly_plan), fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.cancel_anytime), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(0.7f))
                     }
                 }
 
@@ -253,14 +258,14 @@ fun PaywallScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Annuale — €29,99/anno")
+                            Text(stringResource(R.string.yearly_plan))
                             Spacer(Modifier.width(8.dp))
                             Surface(
                                 shape = MaterialTheme.shapes.small,
                                 color = Mint40.copy(0.2f)
                             ) {
                                 Text(
-                                    " -37% ",
+                                    stringResource(R.string.yearly_discount),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Mint40,
                                     fontWeight = FontWeight.Bold
@@ -268,7 +273,7 @@ fun PaywallScreen(
                             }
                         }
                         Text(
-                            "€2,50/mese • Risparmi €17,89",
+                            stringResource(R.string.yearly_savings),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -286,7 +291,7 @@ fun PaywallScreen(
                     Modifier.fillMaxWidth().height(48.dp),
                     enabled = !uiState.purchaseInProgress
                 ) {
-                    Text("Una tantum — €49,99 per sempre")
+                    Text(stringResource(R.string.lifetime_plan))
                 }
             }
 
@@ -294,7 +299,7 @@ fun PaywallScreen(
 
             // "Not now" button
             TextButton(onClick = onNavigateBack) {
-                Text("Non ora", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.not_now), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             Spacer(Modifier.height(24.dp))

@@ -8,6 +8,8 @@ import com.voicetasker.app.domain.ai.NoteAiProcessor
 import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
+import com.voicetasker.app.ui.resources.AndroidStringResolver
+import com.voicetasker.app.ui.resources.StringResolver
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -21,4 +23,5 @@ abstract class AppModule {
     @Binds @Singleton abstract fun bindNoteRepository(impl: NoteRepositoryImpl): NoteRepository
     @Binds @Singleton abstract fun bindCategoryRepository(impl: CategoryRepositoryImpl): CategoryRepository
     @Binds @Singleton abstract fun bindReminderRepository(impl: ReminderRepositoryImpl): ReminderRepository
+    @Binds abstract fun bindStringResolver(impl: AndroidStringResolver): StringResolver
 }

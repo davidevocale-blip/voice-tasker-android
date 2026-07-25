@@ -36,7 +36,7 @@ class VoiceTaskerApp : Application(), Configuration.Provider {
     }
     
     private fun createNotificationChannel() {
-        val ch = NotificationChannel(ReminderWorker.CHANNEL_ID, ReminderWorker.CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH).apply { enableVibration(true) }
+        val ch = NotificationChannel(ReminderWorker.CHANNEL_ID, getString(R.string.notification_channel_reminders), NotificationManager.IMPORTANCE_HIGH).apply { enableVibration(true) }
         (getSystemService(NotificationManager::class.java)).createNotificationChannel(ch)
     }
     

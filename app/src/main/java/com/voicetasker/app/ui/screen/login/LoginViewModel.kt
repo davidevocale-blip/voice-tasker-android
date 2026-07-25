@@ -10,7 +10,9 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.voicetasker.app.BuildConfig
+import com.voicetasker.app.R
 import com.voicetasker.app.data.auth.SupabaseAuthManager
+import com.voicetasker.app.ui.resources.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,11 +24,11 @@ import javax.inject.Inject
 data class LoginUiState(
     val isLoading: Boolean = false,
     val isLoggedIn: Boolean = false,
-    val errorMessage: String? = null,
+    val errorMessage: UiText? = null,
     val isLoginMode: Boolean = true,
     val emailInput: String = "",
     val passwordInput: String = "",
-    val showSuccessMessage: String? = null
+    val showSuccessMessage: UiText? = null
 )
 
 @HiltViewModel
@@ -83,7 +85,10 @@ class LoginViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = "Errore durante l'accesso: ${e.localizedMessage}"
+                        errorMessage = UiText.Resource(
+                            R.string.login_error,
+                            listOf(e.localizedMessage ?: "null")
+                        )
                     )
                 }
             }
@@ -115,12 +120,12 @@ class LoginViewModel @Inject constructor(
         val password = _uiState.value.passwordInput
 
         if (email.isBlank() || password.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Compila tutti i campi.") }
+            _uiState.update { it.copy(errorMessage = UiText.Resource(R.string.fill_all_fields)) }
             return
         }
 
         if (password.length < 6) {
-            _uiState.update { it.copy(errorMessage = "La password deve avere almeno 6 caratteri.") }
+            _uiState.update { it.copy(errorMessage = UiText.Resource(R.string.password_minimum_length)) }
             return
         }
 
@@ -135,7 +140,7 @@ class LoginViewModel @Inject constructor(
                     _uiState.update { 
                         it.copy(
                             isLoading = false, 
-                            showSuccessMessage = "Registrazione completata! Controlla la tua email per il link di attivazione.",
+                            showSuccessMessage = UiText.Resource(R.string.registration_complete),
                             isLoginMode = true // Switch back to login mode after successful signup
                         ) 
                     }
@@ -145,7 +150,10 @@ class LoginViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = "Errore: ${e.message}"
+                        errorMessage = UiText.Resource(
+                            R.string.generic_error_with_detail,
+                            listOf(e.message ?: "null")
+                        )
                     )
                 }
             }
