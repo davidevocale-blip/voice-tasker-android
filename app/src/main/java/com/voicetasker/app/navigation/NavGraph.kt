@@ -10,13 +10,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
@@ -32,6 +26,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.voicetasker.app.R
+import com.voicetasker.app.ui.component.VoiceTaskerBottomBar
+import com.voicetasker.app.ui.component.VoiceTaskerBottomBarItem
 import com.voicetasker.app.ui.screen.addnote.AddNoteScreen
 import com.voicetasker.app.ui.screen.calendar.CalendarScreen
 import com.voicetasker.app.ui.screen.categories.CategoriesScreen
@@ -69,17 +65,32 @@ fun NavGraph() {
     val entry by navController.currentBackStackEntryAsState()
     val currentRoute = entry?.destination?.route
     val showBar = currentRoute in bottomNavItems.map { it.screen.route }
+    val renderedBottomNavItems = bottomNavItems.map { item ->
+        VoiceTaskerBottomBarItem(
+            destination = item.screen,
+            label = stringResource(item.labelRes),
+            selectedIcon = item.selected,
+            unselectedIcon = item.unselected
+        )
+    }
 
     Scaffold(bottomBar = {
-        if (showBar) NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
-            bottomNavItems.forEach { item ->
-                val sel = currentRoute == item.screen.route
-                val label = stringResource(item.labelRes)
-                NavigationBarItem(sel, onClick = { navController.navigate(item.screen.route) { popUpTo(navController.graph.findStartDestination().id) { saveState = true }; launchSingleTop = true; restoreState = true } },
-                    icon = { Icon(if (sel) item.selected else item.unselected, label) },
-                    label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                    colors = NavigationBarItemDefaults.colors(selectedIconColor = MaterialTheme.colorScheme.primary, selectedTextColor = MaterialTheme.colorScheme.primary, indicatorColor = MaterialTheme.colorScheme.primaryContainer))
-            }
+        if (showBar) {
+            VoiceTaskerBottomBar(
+                items = renderedBottomNavItems,
+                selectedItem = renderedBottomNavItems.firstOrNull {
+                    currentRoute == it.destination.route
+                },
+                onItemSelected = { item ->
+                    navController.navigate(item.destination.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
         }
     }) { innerPadding ->
         NavHost(navController, Screen.Home.route, Modifier.padding(innerPadding)) {
