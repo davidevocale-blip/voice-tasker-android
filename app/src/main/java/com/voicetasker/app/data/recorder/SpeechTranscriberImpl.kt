@@ -2,6 +2,7 @@ package com.voicetasker.app.data.recorder
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Resources
 import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
@@ -14,11 +15,15 @@ import com.voicetasker.app.domain.error.SpeechTranscriptionError
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val context: Context) {
+class SpeechTranscriberImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
+    applicationLocalesProvider: SpeechRecognitionApplicationLocalesProvider
+) {
 
     companion object {
         private const val TAG = "SpeechTranscriber"
@@ -56,13 +61,24 @@ class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val 
     // Track restart count to limit beeps
     private var restartCount = 0
 
+    // Resolved once for each user-started session and reused by internal restarts.
+    private var activeLanguageTag = "en-US"
+    private val localeResolver = SpeechRecognitionLocaleResolver(
+        applicationLocalesProvider =
+            applicationLocalesProvider::getApplicationLocales,
+        systemLocaleProvider = {
+            Resources.getSystem().configuration.locales[0]
+                ?: Locale.getDefault()
+        }
+    )
+
     // Audio manager for muting
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
     private fun createIntent(): Intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "it-IT")
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE, activeLanguageTag)
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, activeLanguageTag)
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
         // Try to extend the recognizer's own silence timeout as much as possible
@@ -78,6 +94,7 @@ class SpeechTranscriberImpl @Inject constructor(@ApplicationContext private val 
             )
             return
         }
+        activeLanguageTag = localeResolver.resolveForNewSession()
         isListening = true
         hasReceivedAnyText = false
         restartCount = 0
