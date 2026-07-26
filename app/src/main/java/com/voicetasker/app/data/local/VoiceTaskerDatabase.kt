@@ -10,7 +10,7 @@ import com.voicetasker.app.data.local.entity.CategoryEntity
 import com.voicetasker.app.data.local.entity.NoteEntity
 import com.voicetasker.app.data.local.entity.ReminderEntity
 
-@Database(entities = [NoteEntity::class, CategoryEntity::class, ReminderEntity::class], version = 2, exportSchema = false)
+@Database(entities = [NoteEntity::class, CategoryEntity::class, ReminderEntity::class], version = 2, exportSchema = true)
 abstract class VoiceTaskerDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao
     abstract fun categoryDao(): CategoryDao

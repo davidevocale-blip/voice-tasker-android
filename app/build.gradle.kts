@@ -7,6 +7,10 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = keystorePropertiesFile
     .takeIf { it.isFile }
