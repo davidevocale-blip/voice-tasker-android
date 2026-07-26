@@ -1,0 +1,260 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "9380ed982d8a53700482fa079b4b8087",
+    "entities": [
+      {
+        "tableName": "notes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `transcription` TEXT NOT NULL, `audioFilePath` TEXT NOT NULL, `categoryId` INTEGER NOT NULL, `scheduledDate` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `durationMs` INTEGER NOT NULL, `isPinned` INTEGER NOT NULL, `isCompleted` INTEGER NOT NULL, `location` TEXT NOT NULL, `noteTime` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "transcription",
+            "columnName": "transcription",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "audioFilePath",
+            "columnName": "audioFilePath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "categoryId",
+            "columnName": "categoryId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scheduledDate",
+            "columnName": "scheduledDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationMs",
+            "columnName": "durationMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isPinned",
+            "columnName": "isPinned",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isCompleted",
+            "columnName": "isCompleted",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "location",
+            "columnName": "location",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "noteTime",
+            "columnName": "noteTime",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_notes_categoryId",
+            "unique": false,
+            "columnNames": [
+              "categoryId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notes_categoryId` ON `${TABLE_NAME}` (`categoryId`)"
+          },
+          {
+            "name": "index_notes_scheduledDate",
+            "unique": false,
+            "columnNames": [
+              "scheduledDate"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notes_scheduledDate` ON `${TABLE_NAME}` (`scheduledDate`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "categories",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `colorHex` TEXT NOT NULL, `iconName` TEXT NOT NULL, `isDefault` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `canonicalKey` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "colorHex",
+            "columnName": "colorHex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "iconName",
+            "columnName": "iconName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDefault",
+            "columnName": "isDefault",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "canonicalKey",
+            "columnName": "canonicalKey",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_categories_canonicalKey",
+            "unique": true,
+            "columnNames": [
+              "canonicalKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_categories_canonicalKey` ON `${TABLE_NAME}` (`canonicalKey`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "reminders",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `noteId` INTEGER NOT NULL, `triggerAt` INTEGER NOT NULL, `type` TEXT NOT NULL, `isTriggered` INTEGER NOT NULL, `workRequestId` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "noteId",
+            "columnName": "noteId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "triggerAt",
+            "columnName": "triggerAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isTriggered",
+            "columnName": "isTriggered",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "workRequestId",
+            "columnName": "workRequestId",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_reminders_noteId",
+            "unique": false,
+            "columnNames": [
+              "noteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_reminders_noteId` ON `${TABLE_NAME}` (`noteId`)"
+          },
+          {
+            "name": "index_reminders_triggerAt",
+            "unique": false,
+            "columnNames": [
+              "triggerAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_reminders_triggerAt` ON `${TABLE_NAME}` (`triggerAt`)"
+          }
+        ],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9380ed982d8a53700482fa079b4b8087')"
+    ]
+  }
+}

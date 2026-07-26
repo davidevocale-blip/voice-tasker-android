@@ -3,6 +3,7 @@ package com.voicetasker.app.data.repository
 import com.voicetasker.app.data.local.dao.CategoryDao
 import com.voicetasker.app.data.local.entity.CategoryEntity
 import com.voicetasker.app.domain.model.Category
+import com.voicetasker.app.domain.model.DefaultCategoryKey
 import com.voicetasker.app.domain.repository.CategoryRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -16,5 +17,22 @@ class CategoryRepositoryImpl @Inject constructor(private val dao: CategoryDao) :
     override suspend fun deleteCategoryById(categoryId: Long) { dao.deleteCategoryById(categoryId) }
 }
 
-private fun CategoryEntity.toDomain() = Category(id, name, colorHex, iconName, isDefault, createdAt)
-private fun Category.toEntity() = CategoryEntity(id, name, colorHex, iconName, isDefault, createdAt)
+private fun CategoryEntity.toDomain() = Category(
+    id = id,
+    name = name,
+    colorHex = colorHex,
+    iconName = iconName,
+    isDefault = isDefault,
+    createdAt = createdAt,
+    canonicalKey = DefaultCategoryKey.fromPersistedValue(canonicalKey)
+)
+
+private fun Category.toEntity() = CategoryEntity(
+    id = id,
+    name = name,
+    colorHex = colorHex,
+    iconName = iconName,
+    isDefault = isDefault,
+    createdAt = createdAt,
+    canonicalKey = canonicalKey?.persistedValue
+)
