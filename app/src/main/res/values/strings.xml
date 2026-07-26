@@ -186,6 +186,12 @@
     <string name="yearly_subscription_active">Abbonamento annuale attivo</string>
     <string name="lifetime_license">Licenza lifetime</string>
     <string name="subscription_active">Abbonamento attivo</string>
+    <string name="settings_language_section">Lingua</string>
+    <string name="settings_app_language">Lingua dell’app</string>
+    <string name="settings_choose_language">Scegli la lingua</string>
+    <string name="settings_language_system">Sistema</string>
+    <string name="settings_language_italian">Italiano</string>
+    <string name="settings_language_english">English</string>
     <string name="information">Informazioni</string>
     <string name="app_version" translatable="false">VoiceTasker v%1$s</string>
     <string name="developed_in_italy">Sviluppato con ❤️ in Italia</string>

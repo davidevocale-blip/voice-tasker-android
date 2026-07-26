@@ -110,6 +110,7 @@ dependencies {
     implementation(libs.compose.material.icons.extended)
     debugImplementation(libs.compose.ui.tooling)
     implementation(libs.activity.compose)
+    implementation(libs.appcompat)
 
     // Lifecycle
     implementation(libs.lifecycle.runtime.ktx)
