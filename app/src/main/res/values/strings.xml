@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">VoiceTasker</string>
+    <string name="app_name" translatable="false">VoiceTasker</string>
 
     <!-- Common actions and accessibility -->
     <string name="back">Indietro</string>
@@ -10,7 +10,7 @@
     <string name="edit">Modifica</string>
     <string name="close">Chiudi</string>
     <string name="remove">Rimuovi</string>
-    <string name="completed_mark">✓</string>
+    <string name="completed_mark" translatable="false">✓</string>
     <string name="confirm">OK</string>
     <string name="sign_in">Accedi</string>
     <string name="record">Registra</string>
@@ -94,7 +94,7 @@
     <string name="new_note">Nuova nota</string>
     <string name="gemini_analyzing">✨ Gemini sta analizzando...</string>
     <string name="gemini_analyzing_note">✨ Gemini sta analizzando la nota...</string>
-    <string name="gemini_icon">✨</string>
+    <string name="gemini_icon" translatable="false">✨</string>
     <string name="suggest_with_gemini">Suggerisci con Gemini AI</string>
     <string name="process_with_ai">Elabora con AI</string>
     <string name="record_note">Registra nota</string>
@@ -120,7 +120,6 @@
     <string name="feature_ten_minute_recordings">Registrazioni fino a 10 min</string>
     <string name="feature_unlimited_categories">Categorie illimitate</string>
     <string name="feature_custom_reminders">Reminder personalizzati</string>
-    <string name="feature_personalized_reminders">Promemoria personalizzati</string>
     <string name="feature_no_ads">Nessuna pubblicità</string>
     <string name="email">Email</string>
     <string name="password">Password</string>
@@ -130,15 +129,15 @@
     <string name="already_have_account_sign_in">Hai già un account? Accedi</string>
     <string name="or">oppure</string>
     <string name="please_wait">Attendere...</string>
-    <string name="google_logo_letter">G</string>
+    <string name="google_logo_letter" translatable="false">G</string>
     <string name="continue_with_google">Continua con Google</string>
     <string name="terms_acceptance">Accedendo accetti i Termini di Servizio\ne la Privacy Policy</string>
     <string name="network_diagnostics">Diagnostica di Rete</string>
-    <string name="diagnostic_report">Report Diagnostico</string>
+    <string name="diagnostic_report">Rapporto diagnostico</string>
     <string name="installed_sha1">SHA-1 Installato:</string>
-    <string name="package_label">Package:</string>
-    <string name="signature_error">Error: %1$s</string>
-    <string name="signature_not_found">No signature found</string>
+    <string name="package_label">Pacchetto:</string>
+    <string name="signature_error">Errore: %1$s</string>
+    <string name="signature_not_found">Firma non trovata</string>
     <string name="login_error">Errore durante l\'accesso: %1$s</string>
     <string name="fill_all_fields">Compila tutti i campi.</string>
     <string name="password_minimum_length">La password deve avere almeno 6 caratteri.</string>
@@ -167,12 +166,6 @@
     <string name="plan_name_monthly">Mensile</string>
     <string name="plan_name_yearly">Annuale</string>
     <string name="plan_name_lifetime">Una tantum</string>
-    <string name="monthly_plan">Mensile — €3,99/mese</string>
-    <string name="cancel_anytime">Cancella quando vuoi</string>
-    <string name="yearly_plan">Annuale — €29,99/anno</string>
-    <string name="yearly_discount" formatted="false">"\u0020-37%\u0020"</string>
-    <string name="yearly_savings">€2,50/mese • Risparmi €17,89</string>
-    <string name="lifetime_plan">Una tantum — €49,99 per sempre</string>
     <string name="not_now">Non ora</string>
     <string name="plan_unavailable">Piano non disponibile</string>
     <string name="monthly_product_unavailable">Prodotto mensile non disponibile su Google Play (Play Console in configurazione).</string>
@@ -194,7 +187,7 @@
     <string name="lifetime_license">Licenza lifetime</string>
     <string name="subscription_active">Abbonamento attivo</string>
     <string name="information">Informazioni</string>
-    <string name="app_version">VoiceTasker v%1$s</string>
+    <string name="app_version" translatable="false">VoiceTasker v%1$s</string>
     <string name="developed_in_italy">Sviluppato con ❤️ in Italia</string>
     <string name="debug_title">🔧 Debug</string>
     <string name="simulate_premium">Simula Premium</string>
