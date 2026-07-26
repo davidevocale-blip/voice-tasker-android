@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common actions and accessibility -->
+    <string name="back">Back</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="close">Close</string>
+    <string name="remove">Remove</string>
+    <string name="confirm">OK</string>
+    <string name="sign_in">Sign in</string>
+    <string name="record">Record</string>
+    <string name="search">Search</string>
+    <string name="manual_note_action_content_description">Manual note</string>
+    <string name="manual_note_fallback_title">Manual note</string>
+    <string name="avatar">Avatar</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_calendar">Calendar</string>
+    <string name="nav_categories">Categories</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Notes and shared form labels -->
+    <string name="note">Note</string>
+    <string name="voice_note">Voice note</string>
+    <string name="note_title">Title</string>
+    <string name="note_title_ai_suggested">Title (suggested by AI ✨)</string>
+    <string name="description">Description</string>
+    <string name="note_content">Note content</string>
+    <string name="no_content">No content</string>
+    <string name="no_description">No description</string>
+    <string name="location">Where</string>
+    <string name="location_ai_extracted">Where (extracted by AI ✨)</string>
+    <string name="location_example">e.g. Office, Rome…</string>
+    <string name="category">Category</string>
+    <string name="category_ai_suggested">Category (suggested by AI ✨)</string>
+    <string name="reminders">Reminders</string>
+    <string name="scheduled_date">Scheduled date</string>
+    <string name="set_time">🕐 Set time</string>
+    <string name="time_value">🕐 %1$s</string>
+    <string name="time_value_ai">🕐 %1$s (AI ✨)</string>
+    <string name="date_value">📅 %1$s</string>
+    <string name="select_time">Select time</string>
+    <string name="save_note">Save note</string>
+    <string name="data_label">Date</string>
+    <string name="time_label">Time</string>
+    <string name="recording_duration">Recording duration</string>
+
+    <!-- Reminder types -->
+    <string name="reminder_one_day_before">1 day before</string>
+    <string name="reminder_twelve_hours_before">12 hours before</string>
+    <string name="reminder_two_hours_before">2 hours before</string>
+
+    <!-- Home -->
+    <string name="upgrade_to_premium">Upgrade to Premium</string>
+    <string name="upgrade">Upgrade</string>
+    <plurals name="free_notes_remaining">
+        <item quantity="one">%1$d free note remaining</item>
+        <item quantity="other">%1$d free notes remaining</item>
+    </plurals>
+    <string name="search_notes_hint">Search notes…</string>
+    <string name="no_notes">No notes</string>
+    <string name="no_notes_hint">Tap 🎤 to record or ✏️ to write</string>
+
+    <!-- Categories -->
+    <string name="categories_title">Categories</string>
+    <string name="add_category">Add</string>
+    <string name="default_category">Default</string>
+    <string name="new_category">New category</string>
+    <string name="category_name">Name</string>
+    <string name="category_color">Color</string>
+    <string name="category_name_required">Name required</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">Calendar</string>
+    <string name="previous_month">Previous month</string>
+    <string name="next_month">Next month</string>
+    <string name="weekday_monday_short">M</string>
+    <string name="weekday_tuesday_short">T</string>
+    <string name="weekday_wednesday_short">W</string>
+    <string name="weekday_thursday_short">T</string>
+    <string name="weekday_friday_short">F</string>
+    <string name="weekday_saturday_short">S</string>
+    <string name="weekday_sunday_short">S</string>
+    <string name="notes_for_day">Notes for the day</string>
+    <string name="no_commitments">No commitments</string>
+
+    <!-- Add and record note -->
+    <string name="new_note">New note</string>
+    <string name="gemini_analyzing">✨ Gemini is analyzing…</string>
+    <string name="gemini_analyzing_note">✨ Gemini is analyzing the note…</string>
+    <string name="suggest_with_gemini">Suggest with Gemini AI</string>
+    <string name="process_with_ai">Process with AI</string>
+    <string name="record_note">Record note</string>
+    <string name="max_recording_minutes">Max %1$d min</string>
+    <string name="max_recording_minutes_free">Max %1$d min (Free)</string>
+    <string name="tap_to_stop">Tap to stop</string>
+    <string name="recording_completed">Completed</string>
+    <string name="tap_to_record">Tap to record</string>
+
+    <!-- Note detail -->
+    <string name="note_detail">Note details</string>
+    <string name="save_changes">Save changes</string>
+    <string name="open_in_google_maps">📍 Open in Google Maps</string>
+    <string name="no_reminders">No reminders</string>
+    <string name="unlock_reminders_premium">Unlock reminders with Premium</string>
+    <string name="delete_note">Delete note</string>
+    <string name="delete_note_confirmation">Are you sure you want to delete this note?</string>
+
+    <!-- Authentication -->
+    <string name="login_title">Sign in to VoiceTasker</string>
+    <string name="login_subtitle">Sign in to unlock Premium features\nand sync your data</string>
+    <string name="feature_unlimited_voice_notes">Unlimited voice notes</string>
+    <string name="feature_ten_minute_recordings">Recordings up to 10 min</string>
+    <string name="feature_unlimited_categories">Unlimited categories</string>
+    <string name="feature_custom_reminders">Custom reminders</string>
+    <string name="feature_no_ads">No ads</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="sign_in_with_email">Sign in with Email</string>
+    <string name="register">Register</string>
+    <string name="no_account_register">Don\'t have an account? Register</string>
+    <string name="already_have_account_sign_in">Already have an account? Sign in</string>
+    <string name="or">or</string>
+    <string name="please_wait">Please wait…</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="terms_acceptance">By signing in, you accept the Terms of Service\nand Privacy Policy</string>
+    <string name="network_diagnostics">Network Diagnostics</string>
+    <string name="diagnostic_report">Diagnostic report</string>
+    <string name="installed_sha1">Installed SHA-1:</string>
+    <string name="package_label">Package:</string>
+    <string name="signature_error">Error: %1$s</string>
+    <string name="signature_not_found">Signature not found</string>
+    <string name="login_error">Error signing in: %1$s</string>
+    <string name="fill_all_fields">Fill in all fields.</string>
+    <string name="password_minimum_length">The password must be at least 6 characters long.</string>
+    <string name="registration_complete">Registration complete! Check your email for the activation link.</string>
+    <string name="generic_error_with_detail">Error: %1$s</string>
+
+    <!-- Premium and billing -->
+    <string name="premium">Premium</string>
+    <string name="voicetasker_premium">VoiceTasker Premium</string>
+    <string name="premium_welcome">🎉 Welcome to Premium!</string>
+    <string name="purchase_complete_welcome">🎉 Purchase complete! Welcome to Premium!</string>
+    <string name="premium_trigger_note_limit">You have reached the limit of 10 free notes</string>
+    <string name="premium_trigger_ai">Premium feature</string>
+    <string name="premium_trigger_reminder">Reminders are a Premium feature</string>
+    <string name="premium_trigger_recording_limit">Recordings over 1 minute require Premium</string>
+    <string name="premium_trigger_default">Unlock all features</string>
+    <string name="feature_unlimited_notes">Unlimited notes</string>
+    <string name="feature_unlimited_notes_subtitle">Create as many notes as you want</string>
+    <string name="feature_smart_reminders">Smart reminders</string>
+    <string name="feature_smart_reminders_subtitle">Custom reminders</string>
+    <string name="feature_long_recordings">Long recordings</string>
+    <string name="feature_long_recordings_subtitle">Record for up to 10 minutes</string>
+    <string name="sign_in_to_subscribe">Sign in to subscribe</string>
+    <string name="sign_in_before_purchase">You must sign in before purchasing Premium</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="plan_name_monthly">Monthly</string>
+    <string name="plan_name_yearly">Yearly</string>
+    <string name="plan_name_lifetime">One-time</string>
+    <string name="not_now">Not now</string>
+    <string name="plan_unavailable">Plan unavailable</string>
+    <string name="monthly_product_unavailable">Monthly product unavailable on Google Play (Play Console configuration in progress).</string>
+    <string name="yearly_product_unavailable">Yearly product unavailable on Google Play (Play Console configuration in progress).</string>
+    <string name="lifetime_product_unavailable">Lifetime product unavailable on Google Play (Play Console configuration in progress).</string>
+    <string name="purchase_error">Purchase error: %1$s</string>
+    <string name="purchase_confirmation_error">Error confirming purchase</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="user_fallback">User</string>
+    <string name="user_initial_fallback">U</string>
+    <string name="account_status_free">Free</string>
+    <string name="sign_out_account">Sign out</string>
+    <string name="not_signed_in">You are not signed in</string>
+    <string name="premium_active_celebration">You are Premium! 🎉</string>
+    <string name="monthly_subscription_active">Monthly subscription active</string>
+    <string name="yearly_subscription_active">Yearly subscription active</string>
+    <string name="lifetime_license">Lifetime license</string>
+    <string name="subscription_active">Subscription active</string>
+    <string name="information">Information</string>
+    <string name="developed_in_italy">Made with ❤️ in Italy</string>
+    <string name="debug_title">🔧 Debug</string>
+    <string name="simulate_premium">Simulate Premium</string>
+    <string name="debug_status_premium">Status: PREMIUM ✅</string>
+    <string name="debug_status_free">Status: FREE</string>
+    <string name="debug_only_notice">⚠️ For testing only — not shown in release</string>
+    <string name="sign_out_confirmation">Are you sure you want to sign out? Your data will remain saved.</string>
+    <string name="sign_out">Sign out</string>
+
+    <!-- User-facing processing errors -->
+    <string name="ai_authentication_required">Sign in to process with AI</string>
+    <string name="ai_timeout">AI processing timed out. You can save the note without processing it.</string>
+    <string name="ai_rate_limited">Too many AI requests. Try again later or save the note.</string>
+    <string name="ai_network_error">Network unavailable. You can save the note without AI processing.</string>
+    <string name="ai_invalid_response">Invalid AI response. You can save the original note.</string>
+    <string name="ai_server_error">AI service unavailable. You can save the original note.</string>
+    <string name="speech_recognition_unavailable">Speech recognition unavailable</string>
+    <string name="microphone_permission_denied">Microphone permission denied</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_reminders">Reminders</string>
+    <string name="notification_reminder_title">VoiceTasker reminder</string>
+    <string name="notification_reminder_text">You have a scheduled commitment!</string>
+</resources>

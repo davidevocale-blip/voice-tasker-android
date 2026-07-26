@@ -1,5 +1,6 @@
 package com.voicetasker.app.ui.screen.calendar
 
+import android.text.format.DateFormat
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,6 +44,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,11 +58,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.voicetasker.app.R
 import com.voicetasker.app.domain.model.Note
+import com.voicetasker.app.ui.localization.firstDayOfWeek
+import com.voicetasker.app.ui.localization.orderedShortWeekdayNames
+import com.voicetasker.app.ui.localization.resourceLocale
 import com.voicetasker.app.ui.theme.VoiceTaskerSizing
 import com.voicetasker.app.ui.theme.VoiceTaskerSpacing
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -69,30 +73,31 @@ fun CalendarScreen(
     viewModel: CalendarViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val monthFormatter = SimpleDateFormat("MMMM yyyy", Locale.ITALIAN)
-    val today = Calendar.getInstance()
-    val selectedCalendar = Calendar.getInstance().apply {
+    val locale = resourceLocale()
+    val monthFormatter = remember(locale) {
+        SimpleDateFormat(
+            DateFormat.getBestDateTimePattern(locale, "MMMMyyyy"),
+            locale
+        )
+    }
+    val today = Calendar.getInstance(locale)
+    val selectedCalendar = Calendar.getInstance(locale).apply {
         timeInMillis = uiState.selectedDate
     }
     val currentMonth = uiState.currentMonth
     val daysInMonth = currentMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
-    val firstDayOfWeek = Calendar.getInstance().apply {
+    val firstDayOfMonth = Calendar.getInstance(locale).apply {
         set(
             currentMonth.get(Calendar.YEAR),
             currentMonth.get(Calendar.MONTH),
             1
         )
     }.get(Calendar.DAY_OF_WEEK)
-    val startOffset = (firstDayOfWeek + 5) % 7
-    val dayNames = listOf(
-        stringResource(R.string.weekday_monday_short),
-        stringResource(R.string.weekday_tuesday_short),
-        stringResource(R.string.weekday_wednesday_short),
-        stringResource(R.string.weekday_thursday_short),
-        stringResource(R.string.weekday_friday_short),
-        stringResource(R.string.weekday_saturday_short),
-        stringResource(R.string.weekday_sunday_short)
+    val startOffset = Math.floorMod(
+        firstDayOfMonth - firstDayOfWeek(locale),
+        7
     )
+    val dayNames = remember(locale) { orderedShortWeekdayNames(locale) }
 
     Scaffold(
         topBar = {
@@ -159,8 +164,7 @@ fun CalendarScreen(
                             }
                             Text(
                                 text = monthFormatter
-                                    .format(currentMonth.time)
-                                    .replaceFirstChar { it.uppercase() },
+                                    .format(currentMonth.time),
                                 style = MaterialTheme.typography.titleMedium,
                                 textAlign = TextAlign.Center
                             )
@@ -252,7 +256,9 @@ fun CalendarScreen(
                                                     uiState.daysWithNotes,
                                                 onClick = {
                                                     val calendar =
-                                                        Calendar.getInstance()
+                                                        Calendar.getInstance(
+                                                            locale
+                                                        )
                                                     calendar.set(
                                                         currentMonth.get(
                                                             Calendar.YEAR
