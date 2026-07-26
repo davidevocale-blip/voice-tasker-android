@@ -181,6 +181,12 @@
     <string name="yearly_subscription_active">Yearly subscription active</string>
     <string name="lifetime_license">Lifetime license</string>
     <string name="subscription_active">Subscription active</string>
+    <string name="settings_language_section">Language</string>
+    <string name="settings_app_language">App language</string>
+    <string name="settings_choose_language">Choose language</string>
+    <string name="settings_language_system">System</string>
+    <string name="settings_language_italian">Italiano</string>
+    <string name="settings_language_english">English</string>
     <string name="information">Information</string>
     <string name="developed_in_italy">Made with ❤️ in Italy</string>
     <string name="debug_title">🔧 Debug</string>

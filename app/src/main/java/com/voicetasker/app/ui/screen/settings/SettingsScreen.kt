@@ -3,26 +3,32 @@ package com.voicetasker.app.ui.screen.settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.voicetasker.app.BuildConfig
 import com.voicetasker.app.R
 import com.voicetasker.app.ui.component.VoiceTaskerPremiumBanner
+import com.voicetasker.app.ui.localization.AppLanguage
 import com.voicetasker.app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +40,16 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
     val purchaseCompleteMessage = stringResource(R.string.purchase_complete_welcome)
+    val activeLanguage = AppLanguage.fromLocaleList(
+        AppCompatDelegate.getApplicationLocales()
+    )
+    val activeLanguageLabel = when (activeLanguage) {
+        AppLanguage.SYSTEM -> stringResource(R.string.settings_language_system)
+        AppLanguage.ITALIAN -> stringResource(R.string.settings_language_italian)
+        AppLanguage.ENGLISH -> stringResource(R.string.settings_language_english)
+    }
 
     // Purchase success snackbar
     val snackbarHostState = remember { SnackbarHostState() }
@@ -290,6 +305,55 @@ fun SettingsScreen(
             }
 
             Spacer(Modifier.height(24.dp))
+
+            // ── Language Section ──
+            Text(
+                text = stringResource(R.string.settings_language_section),
+                modifier = Modifier.padding(start = VoiceTaskerSpacing.xs),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(VoiceTaskerSpacing.xs))
+            Surface(
+                onClick = { showLanguageDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = VoiceTaskerSizing.minimumTouchTarget),
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Row(
+                    modifier = Modifier.padding(VoiceTaskerSpacing.md),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Language,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(VoiceTaskerSpacing.sm))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.settings_app_language),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = activeLanguageLabel,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Filled.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
             HorizontalDivider()
             Spacer(Modifier.height(16.dp))
 
@@ -373,6 +437,57 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+
+    if (showLanguageDialog) {
+        val languageOptions = listOf(
+            AppLanguage.SYSTEM to stringResource(R.string.settings_language_system),
+            AppLanguage.ITALIAN to stringResource(R.string.settings_language_italian),
+            AppLanguage.ENGLISH to stringResource(R.string.settings_language_english)
+        )
+
+        AlertDialog(
+            onDismissRequest = { showLanguageDialog = false },
+            title = { Text(stringResource(R.string.settings_choose_language)) },
+            text = {
+                Column(Modifier.selectableGroup()) {
+                    languageOptions.forEach { (language, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = VoiceTaskerSizing.minimumTouchTarget)
+                                .selectable(
+                                    selected = language == activeLanguage,
+                                    onClick = {
+                                        showLanguageDialog = false
+                                        val activeLocales =
+                                            AppCompatDelegate.getApplicationLocales()
+                                        if (!language.matches(activeLocales)) {
+                                            AppCompatDelegate.setApplicationLocales(
+                                                language.toLocaleList()
+                                            )
+                                        }
+                                    },
+                                    role = Role.RadioButton
+                                )
+                                .padding(horizontal = VoiceTaskerSpacing.xs),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = language == activeLanguage,
+                                onClick = null
+                            )
+                            Spacer(Modifier.width(VoiceTaskerSpacing.sm))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {}
+        )
     }
 
     // Logout confirmation dialog
