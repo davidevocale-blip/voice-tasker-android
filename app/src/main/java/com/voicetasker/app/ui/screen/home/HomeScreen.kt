@@ -29,6 +29,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,11 +44,11 @@ import com.voicetasker.app.ui.component.VoiceTaskerPremiumBanner
 import com.voicetasker.app.ui.component.VoiceTaskerSearchField
 import com.voicetasker.app.ui.component.VoiceTaskerStatePanel
 import com.voicetasker.app.ui.component.VoiceTaskerStatePanelMode
+import com.voicetasker.app.ui.localization.localizedDateTimeFormatter
+import com.voicetasker.app.ui.localization.resourceLocale
 import com.voicetasker.app.ui.theme.VoiceTaskerSizing
 import com.voicetasker.app.ui.theme.VoiceTaskerSpacing
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,7 +62,10 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val dateFormat = SimpleDateFormat("dd MMM, HH:mm", Locale.ITALIAN)
+    val locale = resourceLocale()
+    val dateFormat = remember(locale) {
+        localizedDateTimeFormatter(locale)
+    }
 
     Scaffold(
         topBar = {

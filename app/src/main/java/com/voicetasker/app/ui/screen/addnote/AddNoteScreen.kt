@@ -32,6 +32,8 @@ import com.voicetasker.app.domain.model.ReminderType
 import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
+import com.voicetasker.app.ui.localization.localizedDateFormatter
+import com.voicetasker.app.ui.localization.resourceLocale
 import com.voicetasker.app.util.FeedbackManager
 import com.voicetasker.app.ui.resources.labelRes
 import com.voicetasker.app.ui.resources.messageRes
@@ -196,7 +198,10 @@ fun AddNoteScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    val df = SimpleDateFormat("dd MMMM yyyy", Locale.ITALIAN)
+    val locale = resourceLocale()
+    val df = remember(locale) {
+        localizedDateFormatter(locale)
+    }
 
     LaunchedEffect(uiState.isSaved) { if (uiState.isSaved) onNavigateBack() }
 

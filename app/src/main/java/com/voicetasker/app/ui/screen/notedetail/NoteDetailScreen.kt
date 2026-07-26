@@ -82,13 +82,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.voicetasker.app.R
 import com.voicetasker.app.domain.model.ReminderType
+import com.voicetasker.app.ui.localization.localizedDateFormatter
+import com.voicetasker.app.ui.localization.resourceLocale
 import com.voicetasker.app.ui.resources.labelRes
 import com.voicetasker.app.ui.theme.VoiceTaskerDesign
 import com.voicetasker.app.ui.theme.VoiceTaskerSizing
 import com.voicetasker.app.ui.theme.VoiceTaskerSpacing
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -101,7 +101,10 @@ fun NoteDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    val dateFormatter = SimpleDateFormat("dd MMMM yyyy", Locale.ITALIAN)
+    val locale = resourceLocale()
+    val dateFormatter = remember(locale) {
+        localizedDateFormatter(locale)
+    }
     val context = LocalContext.current
 
     LaunchedEffect(uiState.isDeleted) {

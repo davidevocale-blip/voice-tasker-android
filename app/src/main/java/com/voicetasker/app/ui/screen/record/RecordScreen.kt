@@ -82,12 +82,12 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.voicetasker.app.R
+import com.voicetasker.app.ui.localization.localizedDateFormatter
+import com.voicetasker.app.ui.localization.resourceLocale
 import com.voicetasker.app.ui.resources.asString
 import com.voicetasker.app.ui.theme.VoiceTaskerSizing
 import com.voicetasker.app.ui.theme.VoiceTaskerSpacing
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -114,7 +114,10 @@ fun RecordScreen(
     }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    val dateFormatter = SimpleDateFormat("dd MMMM yyyy", Locale.ITALIAN)
+    val locale = resourceLocale()
+    val dateFormatter = remember(locale) {
+        localizedDateFormatter(locale)
+    }
 
     LaunchedEffect(uiState.isSaved) {
         if (uiState.isSaved) onNavigateBack()
