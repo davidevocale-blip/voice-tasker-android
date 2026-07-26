@@ -7,6 +7,7 @@ import com.voicetasker.app.data.auth.SupabaseAuthManager
 import com.voicetasker.app.data.billing.BillingManager
 import com.voicetasker.app.data.billing.BillingState
 import com.voicetasker.app.ui.resources.UiText
+import com.voicetasker.app.ui.resources.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -65,7 +66,8 @@ class PaywallViewModel @Inject constructor(
             isLoggedIn = user != null,
             isPremium = billing.isPremium,
             purchaseInProgress = billing.purchaseInProgress,
-            purchaseError = localError ?: billing.purchaseError?.let { UiText.Dynamic(it) },
+            purchaseError =
+                localError ?: billing.purchaseError?.userError?.toUiText(),
             purchaseSuccess = billing.purchaseSuccess,
             monthlyPrice = monthlyPrice,
             yearlyPrice = yearlyPrice,

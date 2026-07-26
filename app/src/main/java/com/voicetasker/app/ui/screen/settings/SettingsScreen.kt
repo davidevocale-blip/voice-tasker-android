@@ -29,6 +29,8 @@ import com.voicetasker.app.BuildConfig
 import com.voicetasker.app.R
 import com.voicetasker.app.ui.component.VoiceTaskerPremiumBanner
 import com.voicetasker.app.ui.localization.AppLanguage
+import com.voicetasker.app.ui.resources.asString
+import com.voicetasker.app.ui.resources.toUiText
 import com.voicetasker.app.ui.theme.*
 import java.util.Locale
 
@@ -43,6 +45,8 @@ fun SettingsScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
     val purchaseCompleteMessage = stringResource(R.string.purchase_complete_welcome)
+    val purchaseErrorMessage =
+        uiState.billingState.purchaseError?.userError?.toUiText()?.asString()
     val activeLanguage = AppLanguage.fromLocaleList(
         AppCompatDelegate.getApplicationLocales()
     )
@@ -60,8 +64,11 @@ fun SettingsScreen(
             viewModel.clearPurchaseState()
         }
     }
-    LaunchedEffect(uiState.billingState.purchaseError) {
-        uiState.billingState.purchaseError?.let { error ->
+    LaunchedEffect(
+        uiState.billingState.purchaseError,
+        purchaseErrorMessage
+    ) {
+        purchaseErrorMessage?.let { error ->
             snackbarHostState.showSnackbar(error)
             viewModel.clearPurchaseState()
         }
@@ -464,9 +471,16 @@ fun SettingsScreen(
                                         val activeLocales =
                                             AppCompatDelegate.getApplicationLocales()
                                         if (!language.matches(activeLocales)) {
-                                            AppCompatDelegate.setApplicationLocales(
+                                            val selectedLocales =
                                                 language.toLocaleList()
-                                            )
+                                            AppCompatDelegate
+                                                .setApplicationLocales(
+                                                    selectedLocales
+                                                )
+                                            viewModel
+                                                .updateReminderNotificationChannel(
+                                                    selectedLocales
+                                                )
                                         }
                                     },
                                     role = Role.RadioButton

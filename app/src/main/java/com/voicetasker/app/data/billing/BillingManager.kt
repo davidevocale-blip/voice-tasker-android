@@ -4,8 +4,9 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.android.billingclient.api.*
-import com.voicetasker.app.R
 import com.voicetasker.app.data.auth.SupabaseAuthManager
+import com.voicetasker.app.domain.error.BillingFailure
+import com.voicetasker.app.domain.error.BillingUserError
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +27,7 @@ data class BillingState(
     val yearlyDetails: ProductDetails? = null,
     val lifetimeDetails: ProductDetails? = null,
     val purchaseInProgress: Boolean = false,
-    val purchaseError: String? = null,
+    val purchaseError: BillingFailure? = null,
     val purchaseSuccess: Boolean = false
 )
 
@@ -224,7 +225,13 @@ class BillingManager @Inject constructor(
             ?.offerToken
             ?: productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken
             ?: run {
-                _state.update { it.copy(purchaseError = context.getString(R.string.plan_unavailable)) }
+                _state.update {
+                    it.copy(
+                        purchaseError = BillingFailure(
+                            BillingUserError.PLAN_UNAVAILABLE
+                        )
+                    )
+                }
                 return
             }
 
@@ -239,7 +246,12 @@ class BillingManager @Inject constructor(
             )
             .build()
 
-        _state.update { it.copy(purchaseInProgress = true, purchaseError = null) }
+        _state.update {
+            it.copy(
+                purchaseInProgress = true,
+                purchaseError = null
+            )
+        }
         billingClient.launchBillingFlow(activity, flowParams)
     }
 
@@ -257,7 +269,12 @@ class BillingManager @Inject constructor(
             )
             .build()
 
-        _state.update { it.copy(purchaseInProgress = true, purchaseError = null) }
+        _state.update {
+            it.copy(
+                purchaseInProgress = true,
+                purchaseError = null
+            )
+        }
         billingClient.launchBillingFlow(activity, flowParams)
     }
 
@@ -280,7 +297,10 @@ class BillingManager @Inject constructor(
                 _state.update {
                     it.copy(
                         purchaseInProgress = false,
-                        purchaseError = context.getString(R.string.purchase_error, result.debugMessage)
+                        purchaseError = BillingFailure(
+                            userError = BillingUserError.PURCHASE_FAILED,
+                            responseCode = result.responseCode
+                        )
                     )
                 }
             }
@@ -299,7 +319,16 @@ class BillingManager @Inject constructor(
             val ackResult = billingClient.acknowledgePurchase(ackParams)
             if (ackResult.responseCode != BillingClient.BillingResponseCode.OK) {
                 Log.e(TAG, "Acknowledge failed: ${ackResult.debugMessage}")
-                _state.update { it.copy(purchaseInProgress = false, purchaseError = context.getString(R.string.purchase_confirmation_error)) }
+                _state.update {
+                    it.copy(
+                        purchaseInProgress = false,
+                        purchaseError = BillingFailure(
+                            userError =
+                                BillingUserError.PURCHASE_CONFIRMATION_FAILED,
+                            responseCode = ackResult.responseCode
+                        )
+                    )
+                }
                 return
             }
         }
@@ -327,12 +356,13 @@ class BillingManager @Inject constructor(
         }
     }
 
-    fun setPurchaseError(error: String) {
-        _state.update { it.copy(purchaseError = error) }
-    }
-
     fun clearPurchaseState() {
-        _state.update { it.copy(purchaseError = null, purchaseSuccess = false) }
+        _state.update {
+            it.copy(
+                purchaseError = null,
+                purchaseSuccess = false
+            )
+        }
     }
 
     fun destroy() {

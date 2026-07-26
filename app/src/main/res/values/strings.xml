@@ -178,7 +178,7 @@
     <string name="monthly_product_unavailable">Prodotto mensile non disponibile su Google Play (Play Console in configurazione).</string>
     <string name="yearly_product_unavailable">Prodotto annuale non disponibile su Google Play (Play Console in configurazione).</string>
     <string name="lifetime_product_unavailable">Prodotto Lifetime non disponibile su Google Play (Play Console in configurazione).</string>
-    <string name="purchase_error">Errore durante l\'acquisto: %1$s</string>
+    <string name="purchase_error">Errore durante l\'acquisto</string>
     <string name="purchase_confirmation_error">Errore nella conferma dell\'acquisto</string>
 
     <!-- Settings -->
@@ -219,9 +219,11 @@
     <string name="ai_server_error">Servizio AI non disponibile. Puoi salvare la nota originale.</string>
     <string name="speech_recognition_unavailable">Riconoscimento vocale non disponibile</string>
     <string name="microphone_permission_denied">Permessi microfono non concessi</string>
+    <string name="speech_transcription_error">Errore durante la trascrizione vocale</string>
 
     <!-- Notifications -->
     <string name="notification_channel_reminders">Promemoria</string>
+    <string name="notification_channel_reminders_description">Notifiche per i promemoria programmati</string>
     <string name="notification_reminder_title">Promemoria VoiceTasker</string>
     <string name="notification_reminder_text">Hai un impegno in programma!</string>
 </resources>

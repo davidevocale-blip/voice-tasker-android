@@ -2,12 +2,14 @@ package com.voicetasker.app.ui.screen.settings
 
 import android.app.Activity
 import android.util.Log
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.voicetasker.app.data.auth.SupabaseAuthManager
 import com.voicetasker.app.data.auth.UserInfo
 import com.voicetasker.app.data.billing.BillingManager
 import com.voicetasker.app.data.billing.BillingState
+import com.voicetasker.app.notification.ReminderNotificationChannel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,7 +31,8 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val authManager: SupabaseAuthManager,
-    val billingManager: BillingManager
+    val billingManager: BillingManager,
+    private val reminderNotificationChannel: ReminderNotificationChannel
 ) : ViewModel() {
 
     companion object {
@@ -74,5 +77,11 @@ class SettingsViewModel @Inject constructor(
 
     fun clearPurchaseState() {
         billingManager.clearPurchaseState()
+    }
+
+    fun updateReminderNotificationChannel(
+        applicationLocales: LocaleListCompat
+    ) {
+        reminderNotificationChannel.createOrUpdate(applicationLocales)
     }
 }

@@ -1,13 +1,11 @@
 package com.voicetasker.app
 
 import android.app.Application
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import com.voicetasker.app.worker.ReminderWorker
+import com.voicetasker.app.notification.ReminderNotificationChannel
 import dagger.hilt.android.HiltAndroidApp
 import java.io.File
 import javax.inject.Inject
@@ -15,12 +13,13 @@ import javax.inject.Inject
 @HiltAndroidApp
 class VoiceTaskerApp : Application(), Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
+    @Inject lateinit var reminderNotificationChannel: ReminderNotificationChannel
     override val workManagerConfiguration: Configuration get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
     
     override fun onCreate() {
         super.onCreate()
         setupCrashHandler()
-        createNotificationChannel()
+        reminderNotificationChannel.createOrUpdate()
     }
     
     private fun setupCrashHandler() {
@@ -33,11 +32,6 @@ class VoiceTaskerApp : Application(), Configuration.Provider {
             } catch (_: Exception) { }
             defaultHandler?.uncaughtException(thread, throwable)
         }
-    }
-    
-    private fun createNotificationChannel() {
-        val ch = NotificationChannel(ReminderWorker.CHANNEL_ID, getString(R.string.notification_channel_reminders), NotificationManager.IMPORTANCE_HIGH).apply { enableVibration(true) }
-        (getSystemService(NotificationManager::class.java)).createNotificationChannel(ch)
     }
     
     companion object {
