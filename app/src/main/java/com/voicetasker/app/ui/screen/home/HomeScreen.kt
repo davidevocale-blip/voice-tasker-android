@@ -46,6 +46,8 @@ import com.voicetasker.app.ui.component.VoiceTaskerStatePanel
 import com.voicetasker.app.ui.component.VoiceTaskerStatePanelMode
 import com.voicetasker.app.ui.localization.localizedDateTimeFormatter
 import com.voicetasker.app.ui.localization.resourceLocale
+import com.voicetasker.app.ui.resources.asString
+import com.voicetasker.app.ui.resources.displayName
 import com.voicetasker.app.ui.theme.VoiceTaskerSizing
 import com.voicetasker.app.ui.theme.VoiceTaskerSpacing
 import java.util.Date
@@ -160,7 +162,7 @@ fun HomeScreen(
                                 MaterialTheme.colorScheme.primary
                             }
                             VoiceTaskerCategoryChip(
-                                label = cat.name,
+                                label = cat.displayName().asString(),
                                 categoryColor = color,
                                 selected = uiState.selectedCategoryId == cat.id,
                                 onClick = { viewModel.onCategoryFilterChanged(cat.id) }
@@ -192,7 +194,10 @@ fun HomeScreen(
                     title = note.title.ifBlank { stringResource(R.string.note) },
                     content = note.transcription.ifBlank { stringResource(R.string.no_content) },
                     categoryColor = viewModel.getCategoryColor(note.categoryId),
-                    categoryName = viewModel.getCategoryName(note.categoryId),
+                    categoryName = viewModel.getCategory(note.categoryId)
+                        ?.displayName()
+                        ?.asString()
+                        .orEmpty(),
                     dateTime = dateFormat.format(Date(note.scheduledDate)),
                     deleteContentDescription = stringResource(R.string.delete),
                     onDelete = { viewModel.deleteNote(note.id) },

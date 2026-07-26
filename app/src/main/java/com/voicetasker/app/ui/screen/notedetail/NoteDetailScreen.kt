@@ -84,6 +84,8 @@ import com.voicetasker.app.R
 import com.voicetasker.app.domain.model.ReminderType
 import com.voicetasker.app.ui.localization.localizedDateFormatter
 import com.voicetasker.app.ui.localization.resourceLocale
+import com.voicetasker.app.ui.resources.asString
+import com.voicetasker.app.ui.resources.displayName
 import com.voicetasker.app.ui.resources.labelRes
 import com.voicetasker.app.ui.theme.VoiceTaskerDesign
 import com.voicetasker.app.ui.theme.VoiceTaskerSizing
@@ -311,7 +313,7 @@ fun NoteDetailScreen(
                                 CategoryDot(color)
                                 Spacer(Modifier.width(VoiceTaskerSpacing.xs))
                                 Text(
-                                    text = category.name,
+                                    text = category.displayName().asString(),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = if (selected) {
                                         MaterialTheme.colorScheme.onPrimaryContainer
@@ -339,7 +341,10 @@ fun NoteDetailScreen(
                 val categoryColor = parseCategoryColor(
                     viewModel.getCategoryColor(note.categoryId)
                 )
-                val categoryName = viewModel.getCategoryName(note.categoryId)
+                val categoryName = viewModel.getCategory(note.categoryId)
+                    ?.displayName()
+                    ?.asString()
+                    .orEmpty()
 
                 Surface(
                     shape = MaterialTheme.shapes.extraSmall,

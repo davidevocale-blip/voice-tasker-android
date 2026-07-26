@@ -72,6 +72,9 @@
     <string name="category_name">Name</string>
     <string name="category_color">Color</string>
     <string name="category_name_required">Name required</string>
+    <string name="category_default_work">Work</string>
+    <string name="category_default_family">Family</string>
+    <string name="category_default_health">Health</string>
 
     <!-- Calendar -->
     <string name="calendar_title">Calendar</string>

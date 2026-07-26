@@ -30,6 +30,10 @@ import androidx.lifecycle.viewModelScope
 import com.voicetasker.app.R
 import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.repository.CategoryRepository
+import com.voicetasker.app.ui.resources.asString
+import com.voicetasker.app.ui.resources.displayName
+import com.voicetasker.app.ui.resources.persistedCategoryName
+import com.voicetasker.app.ui.resources.UiText
 import com.voicetasker.app.ui.theme.VoiceTaskerSizing
 import com.voicetasker.app.ui.theme.VoiceTaskerSpacing
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,19 +46,31 @@ import javax.inject.Inject
 
 private val COLORS = listOf("#6C63FF", "#FF6584", "#00D9A6", "#FFB947", "#5BC0EB", "#E55934", "#9BC53D", "#FA7921", "#7768AE", "#3BCEAC", "#EE4266")
 
-data class CatUiState(val categories: List<Category> = emptyList(), val showDialog: Boolean = false, val editing: Category? = null, val name: String = "", val color: String = "#6C63FF", @StringRes val errorRes: Int? = null)
+data class CatUiState(
+    val categories: List<Category> = emptyList(),
+    val showDialog: Boolean = false,
+    val editing: Category? = null,
+    val name: String = "",
+    val originalPersistedName: String = "",
+    val initialDisplayName: UiText? = null,
+    val hasNameChanged: Boolean = false,
+    val color: String = "#6C63FF",
+    @StringRes val errorRes: Int? = null
+)
 
 @HiltViewModel
 class CategoriesViewModel @Inject constructor(private val repo: CategoryRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(CatUiState())
     val uiState: StateFlow<CatUiState> = _uiState.asStateFlow()
     init { viewModelScope.launch { repo.getAllCategories().collect { cats -> _uiState.update { it.copy(categories = cats) } } } }
-    fun showAdd() { _uiState.update { it.copy(showDialog = true, editing = null, name = "", color = COLORS.random()) } }
-    fun showEdit(c: Category) { _uiState.update { it.copy(showDialog = true, editing = c, name = c.name, color = c.colorHex) } }
+    fun showAdd() { _uiState.update { it.copy(showDialog = true, editing = null, name = "", originalPersistedName = "", initialDisplayName = null, hasNameChanged = false, color = COLORS.random()) } }
+    fun showEdit(c: Category, displayName: UiText) { _uiState.update { it.copy(showDialog = true, editing = c, name = "", originalPersistedName = c.name, initialDisplayName = displayName, hasNameChanged = false, color = c.colorHex) } }
     fun dismiss() { _uiState.update { it.copy(showDialog = false, errorRes = null) } }
-    fun onNameChanged(n: String) { _uiState.update { it.copy(name = n) } }
+    fun onNameChanged(n: String) {
+        _uiState.update { it.copy(name = n, hasNameChanged = true) }
+    }
     fun onColorChanged(c: String) { _uiState.update { it.copy(color = c) } }
-    fun save() { val s = _uiState.value; if (s.name.isBlank()) { _uiState.update { it.copy(errorRes = R.string.category_name_required) }; return }; viewModelScope.launch { if (s.editing != null) repo.updateCategory(s.editing.copy(name = s.name, colorHex = s.color)) else repo.insertCategory(Category(name = s.name, colorHex = s.color, createdAt = System.currentTimeMillis())); dismiss() } }
+    fun save() { val s = _uiState.value; val savedName = if (s.editing != null) persistedCategoryName(s.originalPersistedName, s.name, s.hasNameChanged) else s.name; if (savedName.isBlank()) { _uiState.update { it.copy(errorRes = R.string.category_name_required) }; return }; viewModelScope.launch { if (s.editing != null) repo.updateCategory(s.editing.copy(name = savedName, colorHex = s.color)) else repo.insertCategory(Category(name = savedName, colorHex = s.color, createdAt = System.currentTimeMillis())); dismiss() } }
     fun delete(id: Long) { viewModelScope.launch { repo.deleteCategoryById(id) } }
 }
 
@@ -105,6 +121,7 @@ fun CategoriesScreen(viewModel: CategoriesViewModel = hiltViewModel()) {
         ) {
             items(uiState.categories, key = { it.id }) { category ->
                 val categoryColor = categoryColor(category.colorHex)
+                val displayName = category.displayName()
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -142,7 +159,7 @@ fun CategoriesScreen(viewModel: CategoriesViewModel = hiltViewModel()) {
                                 .padding(vertical = VoiceTaskerSpacing.sm)
                         ) {
                             Text(
-                                text = category.name,
+                                text = displayName.asString(),
                                 style = MaterialTheme.typography.titleMedium,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
@@ -160,7 +177,7 @@ fun CategoriesScreen(viewModel: CategoriesViewModel = hiltViewModel()) {
                             }
                         }
                         IconButton(
-                            onClick = { viewModel.showEdit(category) },
+                            onClick = { viewModel.showEdit(category, displayName) },
                             modifier = Modifier.size(
                                 VoiceTaskerSizing.minimumTouchTarget
                             )
@@ -198,6 +215,7 @@ fun CategoriesScreen(viewModel: CategoriesViewModel = hiltViewModel()) {
         }
     }
     if (uiState.showDialog) {
+        val initialDisplayName = uiState.initialDisplayName?.asString().orEmpty()
         AlertDialog(
             onDismissRequest = viewModel::dismiss,
             title = {
@@ -214,7 +232,7 @@ fun CategoriesScreen(viewModel: CategoriesViewModel = hiltViewModel()) {
             text = {
                 Column {
                     OutlinedTextField(
-                        value = uiState.name,
+                        value = if (uiState.hasNameChanged) uiState.name else initialDisplayName,
                         onValueChange = viewModel::onNameChanged,
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text(stringResource(R.string.category_name)) },

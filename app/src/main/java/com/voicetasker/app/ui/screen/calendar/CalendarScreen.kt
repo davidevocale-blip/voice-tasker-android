@@ -61,6 +61,8 @@ import com.voicetasker.app.domain.model.Note
 import com.voicetasker.app.ui.localization.firstDayOfWeek
 import com.voicetasker.app.ui.localization.orderedShortWeekdayNames
 import com.voicetasker.app.ui.localization.resourceLocale
+import com.voicetasker.app.ui.resources.asString
+import com.voicetasker.app.ui.resources.displayName
 import com.voicetasker.app.ui.theme.VoiceTaskerSizing
 import com.voicetasker.app.ui.theme.VoiceTaskerSpacing
 import java.text.SimpleDateFormat
@@ -311,7 +313,10 @@ fun CalendarScreen(
                 items(uiState.notesForDate, key = { it.id }) { note ->
                     CalendarNoteCard(
                         note = note,
-                        categoryName = viewModel.getCategoryName(note.categoryId),
+                        categoryName = viewModel.getCategory(note.categoryId)
+                            ?.displayName()
+                            ?.asString()
+                            .orEmpty(),
                         categoryColor = viewModel.getCategoryColor(note.categoryId),
                         onClick = { onNavigateToNoteDetail(note.id) },
                         modifier = Modifier.padding(
