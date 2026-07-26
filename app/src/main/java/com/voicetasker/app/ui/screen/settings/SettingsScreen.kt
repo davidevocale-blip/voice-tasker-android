@@ -30,6 +30,7 @@ import com.voicetasker.app.R
 import com.voicetasker.app.ui.component.VoiceTaskerPremiumBanner
 import com.voicetasker.app.ui.localization.AppLanguage
 import com.voicetasker.app.ui.theme.*
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,7 +132,7 @@ fun SettingsScreen(
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Text(
-                                            user.displayName?.firstOrNull()?.uppercase() ?: stringResource(R.string.user_initial_fallback),
+                                            user.displayName?.firstOrNull()?.uppercase(Locale.ROOT) ?: stringResource(R.string.user_initial_fallback),
                                             style = MaterialTheme.typography.titleLarge,
                                             color = Color.White
                                         )

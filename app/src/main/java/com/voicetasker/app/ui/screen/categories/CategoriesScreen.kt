@@ -4,11 +4,12 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -20,6 +21,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -44,7 +48,24 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private val COLORS = listOf("#6C63FF", "#FF6584", "#00D9A6", "#FFB947", "#5BC0EB", "#E55934", "#9BC53D", "#FA7921", "#7768AE", "#3BCEAC", "#EE4266")
+private data class CategoryColorOption(
+    val hex: String,
+    @StringRes val nameRes: Int
+)
+
+private val COLORS = listOf(
+    CategoryColorOption("#6C63FF", R.string.category_color_bright_violet),
+    CategoryColorOption("#FF6584", R.string.category_color_light_pink),
+    CategoryColorOption("#00D9A6", R.string.category_color_turquoise),
+    CategoryColorOption("#FFB947", R.string.category_color_amber),
+    CategoryColorOption("#5BC0EB", R.string.category_color_light_blue),
+    CategoryColorOption("#E55934", R.string.category_color_orange_red),
+    CategoryColorOption("#9BC53D", R.string.category_color_lime_green),
+    CategoryColorOption("#FA7921", R.string.category_color_orange),
+    CategoryColorOption("#7768AE", R.string.category_color_purple),
+    CategoryColorOption("#3BCEAC", R.string.category_color_aqua_green),
+    CategoryColorOption("#EE4266", R.string.category_color_deep_pink)
+)
 
 data class CatUiState(
     val categories: List<Category> = emptyList(),
@@ -63,7 +84,7 @@ class CategoriesViewModel @Inject constructor(private val repo: CategoryReposito
     private val _uiState = MutableStateFlow(CatUiState())
     val uiState: StateFlow<CatUiState> = _uiState.asStateFlow()
     init { viewModelScope.launch { repo.getAllCategories().collect { cats -> _uiState.update { it.copy(categories = cats) } } } }
-    fun showAdd() { _uiState.update { it.copy(showDialog = true, editing = null, name = "", originalPersistedName = "", initialDisplayName = null, hasNameChanged = false, color = COLORS.random()) } }
+    fun showAdd() { _uiState.update { it.copy(showDialog = true, editing = null, name = "", originalPersistedName = "", initialDisplayName = null, hasNameChanged = false, color = COLORS.random().hex) } }
     fun showEdit(c: Category, displayName: UiText) { _uiState.update { it.copy(showDialog = true, editing = c, name = "", originalPersistedName = c.name, initialDisplayName = displayName, hasNameChanged = false, color = c.colorHex) } }
     fun dismiss() { _uiState.update { it.copy(showDialog = false, errorRes = null) } }
     fun onNameChanged(n: String) {
@@ -255,6 +276,7 @@ fun CategoriesScreen(viewModel: CategoriesViewModel = hiltViewModel()) {
                     )
                     Spacer(Modifier.height(VoiceTaskerSpacing.xs))
                     LazyRow(
+                        modifier = Modifier.selectableGroup(),
                         horizontalArrangement = Arrangement.spacedBy(
                             VoiceTaskerSpacing.xs
                         ),
@@ -262,9 +284,10 @@ fun CategoriesScreen(viewModel: CategoriesViewModel = hiltViewModel()) {
                             vertical = VoiceTaskerSpacing.xxs
                         )
                     ) {
-                        items(COLORS) { hex ->
-                            val color = categoryColor(hex)
-                            val selected = uiState.color == hex
+                        items(COLORS, key = { it.hex }) { option ->
+                            val color = categoryColor(option.hex)
+                            val colorName = stringResource(option.nameRes)
+                            val selected = uiState.color == option.hex
                             Box(
                                 modifier = Modifier
                                     .size(
@@ -284,9 +307,16 @@ fun CategoriesScreen(viewModel: CategoriesViewModel = hiltViewModel()) {
                                             Modifier
                                         }
                                     )
-                                    .clickable {
-                                        viewModel.onColorChanged(hex)
-                                    },
+                                    .semantics {
+                                        contentDescription = colorName
+                                    }
+                                    .selectable(
+                                        selected = selected,
+                                        onClick = {
+                                            viewModel.onColorChanged(option.hex)
+                                        },
+                                        role = Role.RadioButton
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (selected) {

@@ -91,6 +91,7 @@ import com.voicetasker.app.ui.theme.VoiceTaskerDesign
 import com.voicetasker.app.ui.theme.VoiceTaskerSizing
 import com.voicetasker.app.ui.theme.VoiceTaskerSpacing
 import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -441,7 +442,7 @@ fun NoteDetailScreen(
                         InfoRow(
                             icon = Icons.Filled.Timer,
                             label = stringResource(R.string.recording_duration),
-                            value = String.format("%02d:%02d", minutes, seconds)
+                            value = String.format(Locale.ROOT, "%02d:%02d", minutes, seconds)
                         )
                     }
                 }
@@ -662,6 +663,7 @@ fun NoteDetailScreen(
                 TextButton(onClick = {
                     viewModel.onEditTimeChanged(
                         String.format(
+                            Locale.ROOT,
                             "%02d:%02d",
                             timePickerState.hour,
                             timePickerState.minute

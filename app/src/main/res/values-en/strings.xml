@@ -75,18 +75,22 @@
     <string name="category_default_work">Work</string>
     <string name="category_default_family">Family</string>
     <string name="category_default_health">Health</string>
+    <string name="category_color_bright_violet">Bright violet</string>
+    <string name="category_color_light_pink">Light pink</string>
+    <string name="category_color_turquoise">Turquoise</string>
+    <string name="category_color_amber">Amber</string>
+    <string name="category_color_light_blue">Light blue</string>
+    <string name="category_color_orange_red">Orange red</string>
+    <string name="category_color_lime_green">Lime green</string>
+    <string name="category_color_orange">Orange</string>
+    <string name="category_color_purple">Purple</string>
+    <string name="category_color_aqua_green">Aqua green</string>
+    <string name="category_color_deep_pink">Deep pink</string>
 
     <!-- Calendar -->
     <string name="calendar_title">Calendar</string>
     <string name="previous_month">Previous month</string>
     <string name="next_month">Next month</string>
-    <string name="weekday_monday_short">M</string>
-    <string name="weekday_tuesday_short">T</string>
-    <string name="weekday_wednesday_short">W</string>
-    <string name="weekday_thursday_short">T</string>
-    <string name="weekday_friday_short">F</string>
-    <string name="weekday_saturday_short">S</string>
-    <string name="weekday_sunday_short">S</string>
     <string name="notes_for_day">Notes for the day</string>
     <string name="no_commitments">No commitments</string>
 
