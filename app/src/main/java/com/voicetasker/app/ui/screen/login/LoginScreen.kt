@@ -4,10 +4,11 @@ import android.app.Activity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -15,12 +16,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -107,10 +110,15 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 32.dp)
-                .verticalScroll(rememberScrollState()),
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = VoiceTaskerSpacing.md,
+                    end = VoiceTaskerSpacing.md,
+                    bottom = VoiceTaskerSpacing.xxl
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top
         ) {
             AnimatedVisibility(
                 visible = visible,
@@ -121,13 +129,13 @@ fun LoginScreen(
                     Surface(
                         shape = MaterialTheme.shapes.extraLarge,
                         color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(80.dp)
+                        modifier = Modifier.size(64.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Filled.Mic,
                                 contentDescription = null,
-                                modifier = Modifier.size(40.dp),
+                                modifier = Modifier.size(32.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -164,8 +172,9 @@ fun LoginScreen(
 
                     Card(
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            containerColor = MaterialTheme.colorScheme.surface
                         ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         shape = MaterialTheme.shapes.large
                     ) {
                         Column(Modifier.padding(20.dp)) {
@@ -176,7 +185,7 @@ fun LoginScreen(
                                 ) {
                                     Icon(
                                         icon, null,
-                                        tint = Mint40,
+                                        tint = VoiceTaskerDesign.colors.success,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Spacer(Modifier.width(12.dp))
@@ -214,7 +223,7 @@ fun LoginScreen(
                     uiState.showSuccessMessage?.let { success ->
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                                containerColor = VoiceTaskerDesign.colors.successContainer
                             ),
                             shape = MaterialTheme.shapes.medium,
                             modifier = Modifier.fillMaxWidth()
@@ -222,22 +231,63 @@ fun LoginScreen(
                             Text(
                                 success.asString(),
                                 modifier = Modifier.padding(12.dp),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = VoiceTaskerDesign.colors.success,
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
                         Spacer(Modifier.height(16.dp))
                     }
 
+                    AnimatedVisibility(visible = uiState.isLoading) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = VoiceTaskerSpacing.md),
+                            shape = MaterialTheme.shapes.medium,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(VoiceTaskerSpacing.sm),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(VoiceTaskerSpacing.sm)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Text(
+                                    text = stringResource(R.string.please_wait),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+
+                    AuthModeSelector(
+                        isLoginMode = uiState.isLoginMode,
+                        onLoginSelected = {
+                            if (!uiState.isLoginMode) viewModel.toggleLoginMode()
+                        },
+                        onRegisterSelected = {
+                            if (uiState.isLoginMode) viewModel.toggleLoginMode()
+                        }
+                    )
+
+                    Spacer(Modifier.height(VoiceTaskerSpacing.md))
+
                     // Email & Password Fields
                     OutlinedTextField(
                         value = uiState.emailInput,
                         onValueChange = viewModel::onEmailChange,
                         label = { Text(stringResource(R.string.email)) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = VoiceTaskerSizing.inputMinimumHeight),
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Email
+                        shape = MaterialTheme.shapes.small,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next
                         )
                     )
                     
@@ -247,11 +297,15 @@ fun LoginScreen(
                         value = uiState.passwordInput,
                         onValueChange = viewModel::onPasswordChange,
                         label = { Text(stringResource(R.string.password)) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = VoiceTaskerSizing.inputMinimumHeight),
                         singleLine = true,
-                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Password
+                        shape = MaterialTheme.shapes.small,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
                         )
                     )
                     
@@ -260,21 +314,39 @@ fun LoginScreen(
                     // Email Login/Register Button
                     Button(
                         onClick = viewModel::submitEmailAuth,
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        enabled = !uiState.isLoading
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = VoiceTaskerSizing.minimumTouchTarget),
+                        enabled = !uiState.isLoading,
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Text(stringResource(if (uiState.isLoginMode) R.string.sign_in_with_email else R.string.register))
                     }
                     
                     Spacer(Modifier.height(8.dp))
 
-                    TextButton(onClick = viewModel::toggleLoginMode) {
+                    TextButton(
+                        onClick = viewModel::toggleLoginMode,
+                        modifier = Modifier.heightIn(min = VoiceTaskerSizing.minimumTouchTarget)
+                    ) {
                         Text(stringResource(if (uiState.isLoginMode) R.string.no_account_register else R.string.already_have_account_sign_in))
                     }
 
                     Spacer(Modifier.height(16.dp))
                     
-                    Text(stringResource(R.string.or), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HorizontalDivider(Modifier.weight(1f))
+                        Text(
+                            text = stringResource(R.string.or),
+                            modifier = Modifier.padding(horizontal = VoiceTaskerSpacing.sm),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        HorizontalDivider(Modifier.weight(1f))
+                    }
                     
                     Spacer(Modifier.height(16.dp))
 
@@ -286,37 +358,26 @@ fun LoginScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .heightIn(min = 56.dp),
                         shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.onSurface
                         ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
                         enabled = !uiState.isLoading
                     ) {
-                        if (uiState.isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Text(stringResource(R.string.please_wait))
-                        } else {
-                            // Google "G" icon
-                            Text(
-                                stringResource(R.string.google_logo_letter),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF4285F4)
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Text(
-                                stringResource(R.string.continue_with_google),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                        Text(
+                            stringResource(R.string.google_logo_letter),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4285F4)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            stringResource(R.string.continue_with_google),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
 
                     Spacer(Modifier.height(16.dp))
@@ -330,7 +391,10 @@ fun LoginScreen(
                     
                     Spacer(Modifier.height(24.dp))
                     
-                    TextButton(onClick = { showDiagnostics = true }) {
+                    TextButton(
+                        onClick = { showDiagnostics = true },
+                        modifier = Modifier.heightIn(min = VoiceTaskerSizing.minimumTouchTarget)
+                    ) {
                         Text(stringResource(R.string.network_diagnostics))
                     }
                 }
@@ -355,5 +419,64 @@ fun LoginScreen(
                 TextButton(onClick = { showDiagnostics = false }) { Text(stringResource(R.string.close)) }
             }
         )
+    }
+}
+
+@Composable
+private fun AuthModeSelector(
+    isLoginMode: Boolean,
+    onLoginSelected: () -> Unit,
+    onRegisterSelected: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Row(
+            modifier = Modifier.padding(VoiceTaskerSpacing.xxs),
+            horizontalArrangement = Arrangement.spacedBy(VoiceTaskerSpacing.xxs)
+        ) {
+            AuthModeButton(
+                label = stringResource(R.string.sign_in),
+                selected = isLoginMode,
+                onClick = onLoginSelected,
+                modifier = Modifier.weight(1f)
+            )
+            AuthModeButton(
+                label = stringResource(R.string.register),
+                selected = !isLoginMode,
+                onClick = onRegisterSelected,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AuthModeButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (selected) {
+        Button(
+            onClick = onClick,
+            modifier = modifier.heightIn(min = VoiceTaskerSizing.minimumTouchTarget),
+            shape = MaterialTheme.shapes.small,
+            contentPadding = PaddingValues(horizontal = VoiceTaskerSpacing.xs)
+        ) {
+            Text(label, maxLines = 2, textAlign = TextAlign.Center)
+        }
+    } else {
+        TextButton(
+            onClick = onClick,
+            modifier = modifier.heightIn(min = VoiceTaskerSizing.minimumTouchTarget),
+            shape = MaterialTheme.shapes.small,
+            contentPadding = PaddingValues(horizontal = VoiceTaskerSpacing.xs)
+        ) {
+            Text(label, maxLines = 2, textAlign = TextAlign.Center)
+        }
     }
 }
