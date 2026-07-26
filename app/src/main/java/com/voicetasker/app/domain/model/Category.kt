@@ -6,5 +6,6 @@ data class Category(
     val colorHex: String = "#6C63FF",
     val iconName: String = "Label",
     val isDefault: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val canonicalKey: DefaultCategoryKey? = null
 )
