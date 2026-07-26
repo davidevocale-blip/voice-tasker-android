@@ -134,6 +134,7 @@ dependencies {
 
     // Core
     implementation(libs.core.ktx)
+    implementation(libs.core.splashscreen)
 
     // Supabase
     implementation(platform(libs.supabase.bom))
