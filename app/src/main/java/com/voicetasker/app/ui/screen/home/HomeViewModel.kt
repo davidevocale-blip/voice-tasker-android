@@ -86,5 +86,6 @@ class HomeViewModel @Inject constructor(
         val hex = uiState.value.categories.find { it.id == catId }?.colorHex ?: "#6C63FF"
         return try { Color(android.graphics.Color.parseColor(hex)) } catch (_: Exception) { Color(0xFF6C63FF) }
     }
-    fun getCategoryName(catId: Long): String = uiState.value.categories.find { it.id == catId }?.name ?: ""
+    fun getCategory(catId: Long): Category? =
+        uiState.value.categories.find { it.id == catId }
 }

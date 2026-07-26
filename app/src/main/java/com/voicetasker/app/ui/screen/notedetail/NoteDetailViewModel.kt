@@ -97,6 +97,7 @@ class NoteDetailViewModel @Inject constructor(
     fun addReminder(type: ReminderType) { val n = _uiState.value.note ?: return; viewModelScope.launch { reminderRepository.scheduleReminder(noteId, n.scheduledDate, type) } }
     fun removeReminder(id: Long) { viewModelScope.launch { reminderRepository.cancelReminder(id) } }
 
-    fun getCategoryName(catId: Long): String = _uiState.value.categories.find { it.id == catId }?.name ?: ""
+    fun getCategory(catId: Long): Category? =
+        _uiState.value.categories.find { it.id == catId }
     fun getCategoryColor(catId: Long): String = _uiState.value.categories.find { it.id == catId }?.colorHex ?: "#6C63FF"
 }

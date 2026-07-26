@@ -85,6 +85,7 @@ import com.voicetasker.app.R
 import com.voicetasker.app.ui.localization.localizedDateFormatter
 import com.voicetasker.app.ui.localization.resourceLocale
 import com.voicetasker.app.ui.resources.asString
+import com.voicetasker.app.ui.resources.displayName
 import com.voicetasker.app.ui.theme.VoiceTaskerSizing
 import com.voicetasker.app.ui.theme.VoiceTaskerSpacing
 import java.util.Date
@@ -438,7 +439,7 @@ fun RecordScreen(
                                 )
                                 Spacer(Modifier.width(VoiceTaskerSpacing.xs))
                                 Text(
-                                    text = category.name,
+                                    text = category.displayName().asString(),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = if (selected) {
                                         MaterialTheme.colorScheme.onPrimaryContainer

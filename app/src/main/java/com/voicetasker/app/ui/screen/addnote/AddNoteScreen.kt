@@ -38,6 +38,8 @@ import com.voicetasker.app.util.FeedbackManager
 import com.voicetasker.app.ui.resources.labelRes
 import com.voicetasker.app.ui.resources.messageRes
 import com.voicetasker.app.ui.resources.StringResolver
+import com.voicetasker.app.ui.resources.asString
+import com.voicetasker.app.ui.resources.displayName
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -300,7 +302,7 @@ fun AddNoteScreen(
                         color = if (sel) c.copy(0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(0.5f)) {
                         Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.size(10.dp).clip(CircleShape).background(c)); Spacer(Modifier.width(6.dp))
-                            Text(cat.name, style = MaterialTheme.typography.labelMedium, color = if (sel) c else MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(cat.displayName().asString(), style = MaterialTheme.typography.labelMedium, color = if (sel) c else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
