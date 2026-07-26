@@ -89,6 +89,7 @@ import com.voicetasker.app.ui.resources.displayName
 import com.voicetasker.app.ui.theme.VoiceTaskerSizing
 import com.voicetasker.app.ui.theme.VoiceTaskerSpacing
 import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -522,6 +523,7 @@ fun RecordScreen(
                 TextButton(onClick = {
                     viewModel.onTimeChanged(
                         String.format(
+                            Locale.ROOT,
                             "%02d:%02d",
                             timePickerState.hour,
                             timePickerState.minute
@@ -626,7 +628,7 @@ private fun RecordingPanel(
             )
             Spacer(Modifier.height(VoiceTaskerSpacing.sm))
             Text(
-                text = String.format("%02d:%02d", minutes, seconds),
+                text = String.format(Locale.ROOT, "%02d:%02d", minutes, seconds),
                 style = MaterialTheme.typography.displayLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface

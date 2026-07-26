@@ -350,7 +350,7 @@ fun AddNoteScreen(
         AlertDialog(onDismissRequest = { showTimePicker = false },
             title = { Text(stringResource(R.string.select_time)) },
             text = { TimePicker(state = tps) },
-            confirmButton = { TextButton(onClick = { viewModel.onTimeChanged(String.format("%02d:%02d", tps.hour, tps.minute)); showTimePicker = false }) { Text(stringResource(R.string.confirm)) } },
+            confirmButton = { TextButton(onClick = { viewModel.onTimeChanged(String.format(Locale.ROOT, "%02d:%02d", tps.hour, tps.minute)); showTimePicker = false }) { Text(stringResource(R.string.confirm)) } },
             dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.cancel)) } }
         )
     }

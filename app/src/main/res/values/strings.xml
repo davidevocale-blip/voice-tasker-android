@@ -78,18 +78,22 @@
     <string name="category_default_work">Lavoro</string>
     <string name="category_default_family">Famiglia</string>
     <string name="category_default_health">Salute</string>
+    <string name="category_color_bright_violet">Viola brillante</string>
+    <string name="category_color_light_pink">Rosa chiaro</string>
+    <string name="category_color_turquoise">Turchese</string>
+    <string name="category_color_amber">Ambra</string>
+    <string name="category_color_light_blue">Azzurro</string>
+    <string name="category_color_orange_red">Rosso aranciato</string>
+    <string name="category_color_lime_green">Verde lime</string>
+    <string name="category_color_orange">Arancione</string>
+    <string name="category_color_purple">Viola</string>
+    <string name="category_color_aqua_green">Verde acqua</string>
+    <string name="category_color_deep_pink">Rosa intenso</string>
 
     <!-- Calendar -->
     <string name="calendar_title">Calendario</string>
     <string name="previous_month">Prev</string>
     <string name="next_month">Next</string>
-    <string name="weekday_monday_short">L</string>
-    <string name="weekday_tuesday_short">M</string>
-    <string name="weekday_wednesday_short">M</string>
-    <string name="weekday_thursday_short">G</string>
-    <string name="weekday_friday_short">V</string>
-    <string name="weekday_saturday_short">S</string>
-    <string name="weekday_sunday_short">D</string>
     <string name="notes_for_day">Note del giorno</string>
     <string name="no_commitments">Nessun impegno</string>
 
@@ -122,7 +126,7 @@
     <string name="feature_unlimited_voice_notes">Note vocali illimitate</string>
     <string name="feature_ten_minute_recordings">Registrazioni fino a 10 min</string>
     <string name="feature_unlimited_categories">Categorie illimitate</string>
-    <string name="feature_custom_reminders">Reminder personalizzati</string>
+    <string name="feature_custom_reminders">Promemoria personalizzati</string>
     <string name="feature_no_ads">Nessuna pubblicità</string>
     <string name="email">Email</string>
     <string name="password">Password</string>
@@ -160,7 +164,7 @@
     <string name="feature_unlimited_notes">Note illimitate</string>
     <string name="feature_unlimited_notes_subtitle">Crea tutte le note che vuoi</string>
     <string name="feature_smart_reminders">Promemoria smart</string>
-    <string name="feature_smart_reminders_subtitle">Reminder personalizzati</string>
+    <string name="feature_smart_reminders_subtitle">Promemoria personalizzati</string>
     <string name="feature_long_recordings">Registrazioni lunghe</string>
     <string name="feature_long_recordings_subtitle">Fino a 10 minuti di registrazione</string>
     <string name="sign_in_to_subscribe">Accedi per abbonarti</string>
