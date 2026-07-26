@@ -1,6 +1,5 @@
 package com.voicetasker.app.worker
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import androidx.core.app.NotificationCompat
@@ -10,6 +9,7 @@ import androidx.work.WorkerParameters
 import com.voicetasker.app.R
 import com.voicetasker.app.data.local.dao.NoteDao
 import com.voicetasker.app.domain.repository.ReminderRepository
+import com.voicetasker.app.notification.ReminderNotificationChannel
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -18,7 +18,8 @@ class ReminderWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted params: WorkerParameters,
     private val noteDao: NoteDao,
-    private val reminderRepository: ReminderRepository
+    private val reminderRepository: ReminderRepository,
+    private val reminderNotificationChannel: ReminderNotificationChannel
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
@@ -28,9 +29,11 @@ class ReminderWorker @AssistedInject constructor(
         val note = noteDao.getNoteByIdOnce(noteId) ?: return Result.failure()
         if (reminderId > 0) reminderRepository.markAsTriggered(reminderId)
         val manager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channel = NotificationChannel(CHANNEL_ID, applicationContext.getString(R.string.notification_channel_reminders), NotificationManager.IMPORTANCE_HIGH)
-        manager.createNotificationChannel(channel)
-        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+        reminderNotificationChannel.createOrUpdate()
+        val notification = NotificationCompat.Builder(
+            applicationContext,
+            ReminderNotificationChannel.CHANNEL_ID
+        )
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(note.title.ifBlank { applicationContext.getString(R.string.notification_reminder_title) })
             .setContentText(note.transcription.take(100).ifBlank { applicationContext.getString(R.string.notification_reminder_text) })
@@ -41,7 +44,4 @@ class ReminderWorker @AssistedInject constructor(
         return Result.success()
     }
 
-    companion object {
-        const val CHANNEL_ID = "voicetasker_reminders"
-    }
 }

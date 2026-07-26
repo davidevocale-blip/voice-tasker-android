@@ -173,7 +173,7 @@
     <string name="monthly_product_unavailable">Monthly product unavailable on Google Play (Play Console configuration in progress).</string>
     <string name="yearly_product_unavailable">Yearly product unavailable on Google Play (Play Console configuration in progress).</string>
     <string name="lifetime_product_unavailable">Lifetime product unavailable on Google Play (Play Console configuration in progress).</string>
-    <string name="purchase_error">Purchase error: %1$s</string>
+    <string name="purchase_error">Purchase error</string>
     <string name="purchase_confirmation_error">Error confirming purchase</string>
 
     <!-- Settings -->
@@ -213,9 +213,11 @@
     <string name="ai_server_error">AI service unavailable. You can save the original note.</string>
     <string name="speech_recognition_unavailable">Speech recognition unavailable</string>
     <string name="microphone_permission_denied">Microphone permission denied</string>
+    <string name="speech_transcription_error">Speech transcription error</string>
 
     <!-- Notifications -->
     <string name="notification_channel_reminders">Reminders</string>
+    <string name="notification_channel_reminders_description">Notifications for scheduled reminders</string>
     <string name="notification_reminder_title">VoiceTasker reminder</string>
     <string name="notification_reminder_text">You have a scheduled commitment!</string>
 </resources>

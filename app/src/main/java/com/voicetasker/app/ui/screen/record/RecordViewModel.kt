@@ -19,6 +19,7 @@ import com.voicetasker.app.util.FeedbackManager
 import com.voicetasker.app.ui.resources.StringResolver
 import com.voicetasker.app.ui.resources.UiText
 import com.voicetasker.app.ui.resources.messageRes
+import com.voicetasker.app.ui.resources.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -124,8 +125,10 @@ class RecordViewModel @Inject constructor(
                         }
                     }
                     is SpeechTranscriberImpl.TranscriptionState.Error -> {
-                        Log.e(TAG, "Error: ${state.message}")
-                        _uiState.update { it.copy(errorMessage = UiText.Dynamic(state.message)) }
+                        Log.e(TAG, "Error: ${state.error}")
+                        _uiState.update {
+                            it.copy(errorMessage = state.error.toUiText())
+                        }
                     }
                     else -> {}
                 }
