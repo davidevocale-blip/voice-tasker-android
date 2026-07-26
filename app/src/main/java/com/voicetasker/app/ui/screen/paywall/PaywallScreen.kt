@@ -1,9 +1,7 @@
 package com.voicetasker.app.ui.screen.paywall
 
 import android.app.Activity
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,8 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -28,8 +24,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.voicetasker.app.R
 import com.voicetasker.app.ui.resources.asString
 import com.voicetasker.app.ui.theme.*
-import java.text.SimpleDateFormat
-import java.util.*
 import android.content.Context
 import android.content.ContextWrapper
 
@@ -105,34 +99,28 @@ fun PaywallScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = VoiceTaskerSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(Modifier.height(8.dp))
 
-            // Premium Icon with glow
-            Box(contentAlignment = Alignment.Center) {
-                val infiniteTransition = rememberInfiniteTransition(label = "glow")
-                val glowAlpha by infiniteTransition.animateFloat(
-                    initialValue = 0.3f, targetValue = 0.7f,
-                    animationSpec = infiniteRepeatable(tween(2000), RepeatMode.Reverse),
-                    label = "alpha"
+            Surface(
+                modifier = Modifier.size(72.dp),
+                shape = MaterialTheme.shapes.large,
+                color = VoiceTaskerDesign.colors.premiumContainer,
+                border = BorderStroke(
+                    1.dp,
+                    VoiceTaskerDesign.colors.premiumGold.copy(alpha = 0.45f)
                 )
-                Box(
-                    Modifier
-                        .size(100.dp)
-                        .clip(MaterialTheme.shapes.extraLarge)
-                        .background(
-                            Brush.radialGradient(
-                                listOf(Gold40.copy(glowAlpha), Gold40.copy(0.05f))
-                            )
-                        )
-                )
-                Icon(
-                    Icons.Filled.Star, null,
-                    tint = Gold40,
-                    modifier = Modifier.size(48.dp)
-                )
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Filled.Star,
+                        contentDescription = null,
+                        tint = VoiceTaskerDesign.colors.premiumGold,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
             }
 
             Spacer(Modifier.height(16.dp))
@@ -148,8 +136,9 @@ fun PaywallScreen(
             // Trigger message card
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(0.3f)
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 shape = MaterialTheme.shapes.medium
             ) {
                 Row(
@@ -161,7 +150,8 @@ fun PaywallScreen(
                     Text(
                         triggerMessage,
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
             }
@@ -187,8 +177,9 @@ fun PaywallScreen(
                 // Not logged in — show login prompt
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        containerColor = MaterialTheme.colorScheme.surface
                     ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     shape = MaterialTheme.shapes.large
                 ) {
                     Column(
@@ -212,7 +203,9 @@ fun PaywallScreen(
                         Spacer(Modifier.height(12.dp))
                         Button(
                             onClick = onNavigateToLogin,
-                            Modifier.fillMaxWidth(),
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = VoiceTaskerSizing.minimumTouchTarget),
                             shape = MaterialTheme.shapes.medium
                         ) {
                             Icon(Icons.Filled.Login, null, Modifier.size(18.dp))
@@ -224,81 +217,59 @@ fun PaywallScreen(
             } else {
                 // Logged in — show purchase options
                 // Monthly — highlighted
-                Button(
+                PricingPlanCard(
+                    title = stringResource(R.string.plan_name_monthly),
+                    price = uiState.monthlyPrice,
+                    unavailableLabel = stringResource(R.string.plan_unavailable),
+                    available = uiState.isMonthlyAvailable,
+                    purchaseInProgress = uiState.purchaseInProgress,
+                    recommended = false,
                     onClick = {
-                        val activity = context.findActivity() ?: return@Button
+                        val activity = context.findActivity() ?: return@PricingPlanCard
                         viewModel.launchMonthlyPurchase(activity)
-                    },
-                    Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Purple40),
-                    shape = MaterialTheme.shapes.medium,
-                    enabled = !uiState.purchaseInProgress
-                ) {
-                    if (uiState.purchaseInProgress) {
-                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
-                        Spacer(Modifier.width(8.dp))
                     }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.monthly_plan), fontWeight = FontWeight.Bold)
-                        Text(stringResource(R.string.cancel_anytime), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(0.7f))
-                    }
-                }
+                )
 
                 Spacer(Modifier.height(10.dp))
 
                 // Yearly — best value
-                OutlinedButton(
+                PricingPlanCard(
+                    title = stringResource(R.string.plan_name_yearly),
+                    price = uiState.yearlyPrice,
+                    unavailableLabel = stringResource(R.string.plan_unavailable),
+                    available = uiState.isYearlyAvailable,
+                    purchaseInProgress = uiState.purchaseInProgress,
+                    recommended = true,
                     onClick = {
-                        val activity = context.findActivity() ?: return@OutlinedButton
+                        val activity = context.findActivity() ?: return@PricingPlanCard
                         viewModel.launchYearlyPurchase(activity)
-                    },
-                    Modifier.fillMaxWidth().height(56.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    enabled = !uiState.purchaseInProgress
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(stringResource(R.string.yearly_plan))
-                            Spacer(Modifier.width(8.dp))
-                            Surface(
-                                shape = MaterialTheme.shapes.small,
-                                color = Mint40.copy(0.2f)
-                            ) {
-                                Text(
-                                    stringResource(R.string.yearly_discount),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Mint40,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                        Text(
-                            stringResource(R.string.yearly_savings),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
-                }
+                )
 
                 Spacer(Modifier.height(10.dp))
 
                 // Lifetime
-                OutlinedButton(
+                PricingPlanCard(
+                    title = stringResource(R.string.plan_name_lifetime),
+                    price = uiState.lifetimePrice,
+                    unavailableLabel = stringResource(R.string.plan_unavailable),
+                    available = uiState.isLifetimeAvailable,
+                    purchaseInProgress = uiState.purchaseInProgress,
+                    recommended = false,
                     onClick = {
-                        val activity = context.findActivity() ?: return@OutlinedButton
+                        val activity = context.findActivity() ?: return@PricingPlanCard
                         viewModel.launchLifetimePurchase(activity)
-                    },
-                    Modifier.fillMaxWidth().height(48.dp),
-                    enabled = !uiState.purchaseInProgress
-                ) {
-                    Text(stringResource(R.string.lifetime_plan))
-                }
+                    }
+                )
             }
 
             Spacer(Modifier.height(16.dp))
 
             // "Not now" button
-            TextButton(onClick = onNavigateBack) {
+            TextButton(
+                onClick = onNavigateBack,
+                modifier = Modifier.heightIn(min = VoiceTaskerSizing.minimumTouchTarget)
+            ) {
                 Text(stringResource(R.string.not_now), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
@@ -308,11 +279,71 @@ fun PaywallScreen(
 }
 
 @Composable
+private fun PricingPlanCard(
+    title: String,
+    price: String?,
+    unavailableLabel: String,
+    available: Boolean,
+    purchaseInProgress: Boolean,
+    recommended: Boolean,
+    onClick: () -> Unit
+) {
+    val borderColor = when {
+        !available -> MaterialTheme.colorScheme.outlineVariant
+        recommended -> VoiceTaskerDesign.colors.premiumGold
+        else -> MaterialTheme.colorScheme.outline
+    }
+    val containerColor = if (recommended && available) {
+        VoiceTaskerDesign.colors.premiumContainer
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 72.dp),
+        enabled = available && !purchaseInProgress,
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, borderColor),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = containerColor,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        contentPadding = PaddingValues(
+            horizontal = VoiceTaskerSpacing.md,
+            vertical = VoiceTaskerSpacing.sm
+        )
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(VoiceTaskerSpacing.xxs)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = if (available) price.orEmpty() else unavailableLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
 private fun FeatureRow(icon: ImageVector, title: String, subtitle: String) {
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.5f)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shape = MaterialTheme.shapes.medium
     ) {
         Row(
@@ -321,20 +352,30 @@ private fun FeatureRow(icon: ImageVector, title: String, subtitle: String) {
         ) {
             Surface(
                 shape = MaterialTheme.shapes.small,
-                color = Purple40.copy(0.15f),
-                modifier = Modifier.size(40.dp)
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(VoiceTaskerSizing.minimumTouchTarget)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, null, tint = Purple40, modifier = Modifier.size(22.dp))
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
             }
             Spacer(Modifier.width(12.dp))
-            Column {
+            Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Spacer(Modifier.weight(1f))
-            Icon(Icons.Filled.Check, null, tint = Mint40, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(VoiceTaskerSpacing.xs))
+            Icon(
+                Icons.Filled.Check,
+                contentDescription = null,
+                tint = VoiceTaskerDesign.colors.success,
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

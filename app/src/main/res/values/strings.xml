@@ -164,6 +164,9 @@
     <string name="sign_in_to_subscribe">Accedi per abbonarti</string>
     <string name="sign_in_before_purchase">Devi effettuare l\'accesso prima di acquistare Premium</string>
     <string name="sign_in_with_google">Accedi con Google</string>
+    <string name="plan_name_monthly">Mensile</string>
+    <string name="plan_name_yearly">Annuale</string>
+    <string name="plan_name_lifetime">Una tantum</string>
     <string name="monthly_plan">Mensile — €3,99/mese</string>
     <string name="cancel_anytime">Cancella quando vuoi</string>
     <string name="yearly_plan">Annuale — €29,99/anno</string>
@@ -182,6 +185,7 @@
     <string name="settings_title">Impostazioni</string>
     <string name="user_fallback">Utente</string>
     <string name="user_initial_fallback">U</string>
+    <string name="account_status_free">Free</string>
     <string name="sign_out_account">Esci dall\'account</string>
     <string name="not_signed_in">Non hai effettuato l\'accesso</string>
     <string name="premium_active_celebration">Sei Premium! 🎉</string>

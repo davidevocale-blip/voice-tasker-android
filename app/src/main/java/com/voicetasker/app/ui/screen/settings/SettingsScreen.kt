@@ -1,7 +1,7 @@
 package com.voicetasker.app.ui.screen.settings
 
-import android.app.Activity
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -14,16 +14,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.voicetasker.app.BuildConfig
 import com.voicetasker.app.R
+import com.voicetasker.app.ui.component.VoiceTaskerPremiumBanner
 import com.voicetasker.app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +33,6 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     var showLogoutDialog by remember { mutableStateOf(false) }
     val purchaseCompleteMessage = stringResource(R.string.purchase_complete_welcome)
 
@@ -76,13 +74,24 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(
+                    horizontal = VoiceTaskerSpacing.md,
+                    vertical = VoiceTaskerSpacing.xs
+                )
         ) {
             // ── Profile Section ──
+            Text(
+                text = stringResource(R.string.user_fallback),
+                modifier = Modifier.padding(start = VoiceTaskerSpacing.xs),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(VoiceTaskerSpacing.xs))
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = MaterialTheme.colorScheme.surface
                 ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 shape = MaterialTheme.shapes.large
             ) {
                 if (uiState.isLoggedIn && uiState.userInfo != null) {
@@ -126,29 +135,42 @@ fun SettingsScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                if (uiState.billingState.isPremium) {
-                                    Spacer(Modifier.height(4.dp))
-                                    Surface(
-                                        shape = MaterialTheme.shapes.small,
-                                        color = Gold40.copy(0.2f)
+                                Spacer(Modifier.height(4.dp))
+                                Surface(
+                                    shape = MaterialTheme.shapes.small,
+                                    color = if (uiState.billingState.isPremium) {
+                                        VoiceTaskerDesign.colors.premiumContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    }
+                                ) {
+                                    Row(
+                                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(
-                                            Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
+                                        if (uiState.billingState.isPremium) {
                                             Icon(
-                                                Icons.Filled.Star, null,
-                                                tint = Gold40,
+                                                Icons.Filled.Star,
+                                                contentDescription = null,
+                                                tint = VoiceTaskerDesign.colors.premiumGold,
                                                 modifier = Modifier.size(12.dp)
                                             )
                                             Spacer(Modifier.width(4.dp))
-                                            Text(
-                                                stringResource(R.string.premium),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = Gold40,
-                                                fontWeight = FontWeight.Bold
-                                            )
                                         }
+                                        Text(
+                                            text = if (uiState.billingState.isPremium) {
+                                                stringResource(R.string.premium)
+                                            } else {
+                                                stringResource(R.string.account_status_free)
+                                            },
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (uiState.billingState.isPremium) {
+                                                VoiceTaskerDesign.colors.premiumGold
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
                                 }
                             }
@@ -156,7 +178,9 @@ fun SettingsScreen(
                         Spacer(Modifier.height(12.dp))
                         OutlinedButton(
                             onClick = { showLogoutDialog = true },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = VoiceTaskerSizing.minimumTouchTarget),
                             shape = MaterialTheme.shapes.medium,
                             colors = ButtonDefaults.outlinedButtonColors(
                                 contentColor = MaterialTheme.colorScheme.error
@@ -190,7 +214,9 @@ fun SettingsScreen(
                         Spacer(Modifier.height(12.dp))
                         Button(
                             onClick = onNavigateToLogin,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = VoiceTaskerSizing.minimumTouchTarget),
                             shape = MaterialTheme.shapes.medium
                         ) {
                             Icon(Icons.Filled.Login, null, modifier = Modifier.size(18.dp))
@@ -204,67 +230,29 @@ fun SettingsScreen(
             Spacer(Modifier.height(20.dp))
 
             // ── Premium Section ──
+            Text(
+                text = stringResource(R.string.premium),
+                modifier = Modifier.padding(start = VoiceTaskerSpacing.xs),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(VoiceTaskerSpacing.xs))
             if (!uiState.billingState.isPremium) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    shape = MaterialTheme.shapes.large
-                ) {
-                    Column(Modifier.padding(24.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Filled.Star, null,
-                                tint = Gold40,
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                stringResource(R.string.voicetasker_premium),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Spacer(Modifier.height(12.dp))
-
-                        listOf(
-                            stringResource(R.string.feature_unlimited_voice_notes),
-                            stringResource(R.string.feature_ten_minute_recordings),
-                            stringResource(R.string.feature_personalized_reminders)
-                        ).forEach { feature ->
-                            Row(
-                                Modifier.padding(vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Filled.Check, null,
-                                    tint = Mint40,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(feature, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
-
-                        Spacer(Modifier.height(16.dp))
-
-                        Button(
-                            onClick = onNavigateToPaywall,
-                            Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Purple40),
-                            shape = MaterialTheme.shapes.medium
-                        ) {
-                            Icon(Icons.Filled.Star, null, Modifier.size(18.dp), tint = Gold40)
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.upgrade_to_premium), fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
+                VoiceTaskerPremiumBanner(
+                    title = stringResource(R.string.voicetasker_premium),
+                    subtitle = stringResource(R.string.premium_trigger_default),
+                    actionLabel = stringResource(R.string.upgrade_to_premium),
+                    onAction = onNavigateToPaywall
+                )
             } else {
                 // Premium active
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = Gold40.copy(0.1f)
+                        containerColor = VoiceTaskerDesign.colors.premiumContainer
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        VoiceTaskerDesign.colors.premiumGold.copy(alpha = 0.45f)
                     ),
                     shape = MaterialTheme.shapes.large
                 ) {
@@ -276,7 +264,7 @@ fun SettingsScreen(
                     ) {
                         Icon(
                             Icons.Filled.Star, null,
-                            tint = Gold40,
+                            tint = VoiceTaskerDesign.colors.premiumGold,
                             modifier = Modifier.size(40.dp)
                         )
                         Spacer(Modifier.height(8.dp))
@@ -311,16 +299,28 @@ fun SettingsScreen(
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.app_version, BuildConfig.VERSION_NAME),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                stringResource(R.string.developed_in_italy),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(VoiceTaskerSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(VoiceTaskerSpacing.xxs)
+                ) {
+                    Text(
+                        stringResource(R.string.app_version, BuildConfig.VERSION_NAME),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        stringResource(R.string.developed_in_italy),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
             // Debug section — only visible in debug builds
             if (com.voicetasker.app.BuildConfig.DEBUG) {
@@ -338,8 +338,9 @@ fun SettingsScreen(
 
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(0.3f)
+                        containerColor = MaterialTheme.colorScheme.surface
                     ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Row(

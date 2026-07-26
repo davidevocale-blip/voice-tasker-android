@@ -21,7 +21,13 @@ data class PaywallUiState(
     val isPremium: Boolean = false,
     val purchaseInProgress: Boolean = false,
     val purchaseError: UiText? = null,
-    val purchaseSuccess: Boolean = false
+    val purchaseSuccess: Boolean = false,
+    val monthlyPrice: String? = null,
+    val yearlyPrice: String? = null,
+    val lifetimePrice: String? = null,
+    val isMonthlyAvailable: Boolean = false,
+    val isYearlyAvailable: Boolean = false,
+    val isLifetimeAvailable: Boolean = false
 )
 
 @HiltViewModel
@@ -37,12 +43,36 @@ class PaywallViewModel @Inject constructor(
         billingManager.state,
         localPurchaseError
     ) { user, billing, localError ->
+        val monthlyPrice = billing.monthlyDetails
+            ?.subscriptionOfferDetails
+            ?.firstOrNull { it.basePlanId == "monthly-base" }
+            ?.pricingPhases
+            ?.pricingPhaseList
+            ?.lastOrNull()
+            ?.formattedPrice
+        val yearlyPrice = billing.yearlyDetails
+            ?.subscriptionOfferDetails
+            ?.firstOrNull { it.basePlanId == "yearly-base" }
+            ?.pricingPhases
+            ?.pricingPhaseList
+            ?.lastOrNull()
+            ?.formattedPrice
+        val lifetimePrice = billing.lifetimeDetails
+            ?.oneTimePurchaseOfferDetails
+            ?.formattedPrice
+
         PaywallUiState(
             isLoggedIn = user != null,
             isPremium = billing.isPremium,
             purchaseInProgress = billing.purchaseInProgress,
             purchaseError = localError ?: billing.purchaseError?.let { UiText.Dynamic(it) },
-            purchaseSuccess = billing.purchaseSuccess
+            purchaseSuccess = billing.purchaseSuccess,
+            monthlyPrice = monthlyPrice,
+            yearlyPrice = yearlyPrice,
+            lifetimePrice = lifetimePrice,
+            isMonthlyAvailable = billing.monthlyDetails != null && monthlyPrice != null,
+            isYearlyAvailable = billing.yearlyDetails != null && yearlyPrice != null,
+            isLifetimeAvailable = billing.lifetimeDetails != null && lifetimePrice != null
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PaywallUiState())
 
