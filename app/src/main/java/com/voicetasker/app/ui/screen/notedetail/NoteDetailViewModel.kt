@@ -11,6 +11,8 @@ import com.voicetasker.app.domain.reminder.ReminderDateNormalizer
 import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
+import com.voicetasker.app.domain.usecase.deleteNoteWithReminders
+import com.voicetasker.app.domain.usecase.updateNoteWithReminders
 import com.voicetasker.app.util.FeedbackManager
 import com.voicetasker.app.ui.resources.failureMessageRes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -81,21 +83,36 @@ class NoteDetailViewModel @Inject constructor(
     fun saveEdits() {
         val n = _uiState.value.note ?: return; val s = _uiState.value
         viewModelScope.launch {
-            noteRepository.updateNote(n.copy(
+            val updatedNote = n.copy(
                 title = s.editTitle, transcription = s.editTranscription,
                 categoryId = s.editCategoryId ?: n.categoryId,
                 location = s.editLocation, noteTime = s.editNoteTime,
                 scheduledDate = s.editScheduledDate,
                 updatedAt = System.currentTimeMillis()
-            ))
+            )
+            val reminderResult = updateNoteWithReminders(
+                original = n,
+                updated = updatedNote,
+                noteRepository = noteRepository,
+                reminderRepository = reminderRepository
+            )
             feedbackManager.play(FeedbackManager.FeedbackType.EDIT)
-            _uiState.update { it.copy(isEditing = false) }
+            _uiState.update {
+                it.copy(
+                    isEditing = false,
+                    reminderFailureRes = reminderResult?.failureMessageRes()
+                )
+            }
         }
     }
 
     fun deleteNote() {
         viewModelScope.launch {
-            noteRepository.deleteNoteById(noteId)
+            deleteNoteWithReminders(
+                noteId,
+                reminderRepository,
+                noteRepository
+            )
             feedbackManager.play(FeedbackManager.FeedbackType.DELETE)
             _uiState.update { it.copy(isDeleted = true) }
         }

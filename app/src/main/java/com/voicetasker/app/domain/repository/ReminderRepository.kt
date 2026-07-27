@@ -29,6 +29,12 @@ interface ReminderRepository {
         type: ReminderType
     ): ReminderScheduleResult
     suspend fun cancelReminder(reminderId: Long)
+    suspend fun cancelRemindersForNote(noteId: Long)
+    suspend fun rescheduleActiveReminders(
+        noteId: Long,
+        scheduledDate: Long?,
+        noteTime: String
+    ): ReminderScheduleResult?
     suspend fun markAsTriggered(reminderId: Long)
     suspend fun getReminderById(reminderId: Long): Reminder?
 }
