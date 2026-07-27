@@ -1,5 +1,6 @@
 package com.voicetasker.app.ui.screen.home
 
+import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,10 +30,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,13 +45,13 @@ import com.voicetasker.app.ui.component.VoiceTaskerPremiumBanner
 import com.voicetasker.app.ui.component.VoiceTaskerSearchField
 import com.voicetasker.app.ui.component.VoiceTaskerStatePanel
 import com.voicetasker.app.ui.component.VoiceTaskerStatePanelMode
-import com.voicetasker.app.ui.localization.localizedDateTimeFormatter
+import com.voicetasker.app.ui.localization.formatHomeNoteCardDateTime
 import com.voicetasker.app.ui.localization.resourceLocale
 import com.voicetasker.app.ui.resources.asString
 import com.voicetasker.app.ui.resources.displayName
 import com.voicetasker.app.ui.theme.VoiceTaskerSizing
 import com.voicetasker.app.ui.theme.VoiceTaskerSpacing
-import java.util.Date
+import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,9 +66,9 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val locale = resourceLocale()
-    val dateFormat = remember(locale) {
-        localizedDateTimeFormatter(locale)
-    }
+    val context = LocalContext.current
+    val zoneId = ZoneId.systemDefault()
+    val is24Hour = DateFormat.is24HourFormat(context)
 
     Scaffold(
         topBar = {
@@ -198,7 +199,13 @@ fun HomeScreen(
                         ?.displayName()
                         ?.asString()
                         .orEmpty(),
-                    dateTime = dateFormat.format(Date(note.scheduledDate)),
+                    dateTime = formatHomeNoteCardDateTime(
+                        scheduledDate = note.scheduledDate,
+                        noteTime = note.noteTime,
+                        locale = locale,
+                        zoneId = zoneId,
+                        is24Hour = is24Hour
+                    ),
                     deleteContentDescription = stringResource(R.string.delete),
                     onDelete = { viewModel.deleteNote(note.id) },
                     onClick = { onNavigateToNoteDetail(note.id) },
