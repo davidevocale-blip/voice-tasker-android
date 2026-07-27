@@ -9,6 +9,8 @@ import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.model.Note
 import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
+import com.voicetasker.app.domain.repository.ReminderRepository
+import com.voicetasker.app.domain.usecase.deleteNoteWithReminders
 import com.voicetasker.app.util.FeedbackManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +35,7 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
+    private val reminderRepository: ReminderRepository,
     private val categoryRepository: CategoryRepository,
     val feedbackManager: FeedbackManager,
     private val authManager: SupabaseAuthManager,
@@ -80,7 +83,12 @@ class HomeViewModel @Inject constructor(
 
     fun onSearchQueryChanged(q: String) { _searchQuery.value = q }
     fun onCategoryFilterChanged(id: Long?) { _selectedCategoryId.value = if (_selectedCategoryId.value == id) null else id }
-    fun deleteNote(id: Long) { viewModelScope.launch { noteRepository.deleteNoteById(id); feedbackManager.play(FeedbackManager.FeedbackType.DELETE) } }
+    fun deleteNote(id: Long) {
+        viewModelScope.launch {
+            deleteNoteWithReminders(id, reminderRepository, noteRepository)
+            feedbackManager.play(FeedbackManager.FeedbackType.DELETE)
+        }
+    }
 
     fun getCategoryColor(catId: Long): Color {
         val hex = uiState.value.categories.find { it.id == catId }?.colorHex ?: "#6C63FF"

@@ -9,6 +9,9 @@ interface ReminderDao {
     @Query("SELECT * FROM reminders WHERE noteId = :noteId ORDER BY triggerAt ASC")
     fun getRemindersForNote(noteId: Long): Flow<List<ReminderEntity>>
 
+    @Query("SELECT * FROM reminders WHERE noteId = :noteId ORDER BY triggerAt ASC")
+    suspend fun getRemindersForNoteOnce(noteId: Long): List<ReminderEntity>
+
     @Query("SELECT * FROM reminders WHERE id = :reminderId")
     suspend fun getReminderById(reminderId: Long): ReminderEntity?
 
@@ -17,6 +20,9 @@ interface ReminderDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReminder(reminder: ReminderEntity): Long
+
+    @Query("UPDATE reminders SET workRequestId = :workRequestId WHERE id = :reminderId")
+    suspend fun updateWorkRequestId(reminderId: Long, workRequestId: String): Int
 
     @Query("DELETE FROM reminders WHERE noteId = :noteId")
     suspend fun deleteRemindersForNote(noteId: Long)
