@@ -7,10 +7,12 @@ import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.model.Note
 import com.voicetasker.app.domain.model.Reminder
 import com.voicetasker.app.domain.model.ReminderType
+import com.voicetasker.app.domain.reminder.ReminderDateNormalizer
 import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
 import com.voicetasker.app.util.FeedbackManager
+import com.voicetasker.app.ui.resources.failureMessageRes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +33,8 @@ data class NoteDetailUiState(
     val editNoteTime: String = "",
     val editScheduledDate: Long = 0,
     val isDeleted: Boolean = false,
-    val isPremium: Boolean = false
+    val isPremium: Boolean = false,
+    val reminderFailureRes: Int? = null
 )
 
 @HiltViewModel
@@ -68,7 +71,11 @@ class NoteDetailViewModel @Inject constructor(
     fun onEditCategoryChanged(id: Long) { _uiState.update { it.copy(editCategoryId = id) } }
     fun onEditLocationChanged(l: String) { _uiState.update { it.copy(editLocation = l) } }
     fun onEditTimeChanged(t: String) { _uiState.update { it.copy(editNoteTime = t) } }
-    fun onEditDateChanged(d: Long) { _uiState.update { it.copy(editScheduledDate = d) } }
+    fun onEditDateChanged(d: Long) {
+        ReminderDateNormalizer.fromDatePickerMillis(d)?.let { canonicalDate ->
+            _uiState.update { it.copy(editScheduledDate = canonicalDate) }
+        }
+    }
     fun cancelEditing() { _uiState.update { it.copy(isEditing = false) } }
 
     fun saveEdits() {
@@ -94,7 +101,20 @@ class NoteDetailViewModel @Inject constructor(
         }
     }
 
-    fun addReminder(type: ReminderType) { val n = _uiState.value.note ?: return; viewModelScope.launch { reminderRepository.scheduleReminder(noteId, n.scheduledDate, type) } }
+    fun addReminder(type: ReminderType) {
+        val note = _uiState.value.note ?: return
+        viewModelScope.launch {
+            val result = reminderRepository.scheduleReminder(
+                noteId = noteId,
+                scheduledDate = note.scheduledDate,
+                noteTime = note.noteTime,
+                type = type
+            )
+            _uiState.update {
+                it.copy(reminderFailureRes = result.failureMessageRes())
+            }
+        }
+    }
     fun removeReminder(id: Long) { viewModelScope.launch { reminderRepository.cancelReminder(id) } }
 
     fun getCategory(catId: Long): Category? =

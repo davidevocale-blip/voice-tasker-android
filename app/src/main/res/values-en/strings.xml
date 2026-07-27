@@ -52,6 +52,16 @@
     <string name="reminder_one_day_before">1 day before</string>
     <string name="reminder_twelve_hours_before">12 hours before</string>
     <string name="reminder_two_hours_before">2 hours before</string>
+    <string name="reminder_failure_missing_date">select a date</string>
+    <string name="reminder_failure_missing_time">set a time</string>
+    <string name="reminder_failure_invalid_date">the saved date is not recognized</string>
+    <string name="reminder_failure_invalid_time">the time must use the HH:mm format</string>
+    <string name="reminder_failure_trigger_in_past">the reminder time has already passed</string>
+    <string name="reminder_failure_nonexistent_local_time">this time does not exist on this date due to the daylight-saving change</string>
+    <string name="reminder_failure_persistence">the reminder could not be saved</string>
+    <string name="reminder_failure_scheduling">the reminder could not be scheduled</string>
+    <string name="note_saved_reminder_warning">Note saved, but reminder not scheduled: %1$s.</string>
+    <string name="reminder_not_scheduled">Reminder not scheduled: %1$s.</string>
 
     <!-- Home -->
     <string name="upgrade_to_premium">Upgrade to Premium</string>

@@ -29,14 +29,17 @@ import com.voicetasker.app.domain.ai.toFallback
 import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.model.Note
 import com.voicetasker.app.domain.model.ReminderType
+import com.voicetasker.app.domain.reminder.ReminderDateNormalizer
 import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
+import com.voicetasker.app.domain.repository.ReminderScheduleResult
 import com.voicetasker.app.ui.localization.localizedDateFormatter
 import com.voicetasker.app.ui.localization.resourceLocale
 import com.voicetasker.app.util.FeedbackManager
 import com.voicetasker.app.ui.resources.labelRes
 import com.voicetasker.app.ui.resources.messageRes
+import com.voicetasker.app.ui.resources.toCompletedNoteSaveUiResult
 import com.voicetasker.app.ui.resources.StringResolver
 import com.voicetasker.app.ui.resources.asString
 import com.voicetasker.app.ui.resources.displayName
@@ -46,7 +49,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.*
 import javax.inject.Inject
@@ -59,6 +61,7 @@ data class AddNoteUiState(
     val categories: List<Category> = emptyList(),
     val selectedCategoryId: Long? = null,
     val scheduledDate: Long = System.currentTimeMillis(),
+    val isDateSelected: Boolean = false,
     val selectedReminders: Set<ReminderType> = emptySet(),
     val isSaved: Boolean = false,
     val isAiProcessing: Boolean = false,
@@ -66,7 +69,9 @@ data class AddNoteUiState(
     val location: String = "",
     val noteTime: String = "",
     @StringRes val aiErrorRes: Int? = null,
-    val authenticationRequired: Boolean = false
+    @StringRes val reminderFailureRes: Int? = null,
+    val authenticationRequired: Boolean = false,
+    val isSaving: Boolean = false
 )
 
 @HiltViewModel
@@ -92,7 +97,13 @@ class AddNoteViewModel @Inject constructor(
     fun onTitleChanged(t: String) { _uiState.update { it.copy(title = t) } }
     fun onContentChanged(t: String) { _uiState.update { it.copy(content = t) } }
     fun onCategorySelected(id: Long) { _uiState.update { it.copy(selectedCategoryId = id) } }
-    fun onDateChanged(d: Long) { _uiState.update { it.copy(scheduledDate = d) } }
+    fun onDateChanged(d: Long) {
+        ReminderDateNormalizer.fromDatePickerMillis(d)?.let { canonicalDate ->
+            _uiState.update {
+                it.copy(scheduledDate = canonicalDate, isDateSelected = true)
+            }
+        }
+    }
     fun onLocationChanged(l: String) { _uiState.update { it.copy(location = l) } }
     fun onTimeChanged(t: String) { _uiState.update { it.copy(noteTime = t) } }
     fun onReminderToggled(type: ReminderType) {
@@ -147,11 +158,12 @@ class AddNoteViewModel @Inject constructor(
                     updated = updated.copy(noteTime = metadata.time)
                 }
                 if (metadata.date != null) {
-                    try {
-                        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                        val parsed = sdf.parse(metadata.date)
-                        if (parsed != null) updated = updated.copy(scheduledDate = parsed.time)
-                    } catch (_: Exception) {}
+                    ReminderDateNormalizer.fromIsoDate(metadata.date)?.let { canonicalDate ->
+                        updated = updated.copy(
+                            scheduledDate = canonicalDate,
+                            isDateSelected = true
+                        )
+                    }
                 }
                 if (metadata.category != null) {
                     val catId = s.categories.find { it.name.equals(metadata.category, ignoreCase = true) }?.id
@@ -163,6 +175,8 @@ class AddNoteViewModel @Inject constructor(
     }
 
     fun saveNote() {
+        if (_uiState.value.isSaving || _uiState.value.isSaved) return
+        _uiState.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             val s = _uiState.value
             val now = System.currentTimeMillis()
@@ -179,11 +193,24 @@ class AddNoteViewModel @Inject constructor(
                     noteTime = s.noteTime
                 )
             )
+            val reminderResults = mutableListOf<ReminderScheduleResult>()
             s.selectedReminders.forEach { type ->
-                reminderRepository.scheduleReminder(noteId, s.scheduledDate, type)
+                reminderResults += reminderRepository.scheduleReminder(
+                    noteId = noteId,
+                    scheduledDate = s.scheduledDate.takeIf { s.isDateSelected },
+                    noteTime = s.noteTime,
+                    type = type
+                )
             }
+            val completion = reminderResults.toCompletedNoteSaveUiResult()
             feedbackManager.play(FeedbackManager.FeedbackType.SAVE)
-            _uiState.update { it.copy(isSaved = true) }
+            _uiState.update {
+                it.copy(
+                    isSaved = completion.isSaved,
+                    isSaving = false,
+                    reminderFailureRes = completion.reminderFailureRes
+                )
+            }
         }
     }
 }
@@ -204,14 +231,29 @@ fun AddNoteScreen(
     val df = remember(locale) {
         localizedDateFormatter(locale)
     }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val reminderWarning = uiState.reminderFailureRes?.let { reasonRes ->
+        stringResource(
+            R.string.note_saved_reminder_warning,
+            stringResource(reasonRes)
+        )
+    }
 
-    LaunchedEffect(uiState.isSaved) { if (uiState.isSaved) onNavigateBack() }
+    LaunchedEffect(uiState.isSaved, reminderWarning) {
+        if (uiState.isSaved) {
+            reminderWarning?.let {
+                snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
+            }
+            onNavigateBack()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(title = { Text(stringResource(R.string.new_note)) },
                 navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
-                actions = { IconButton(onClick = viewModel::saveNote, enabled = uiState.title.isNotBlank() || uiState.content.isNotBlank()) { Icon(Icons.Filled.Check, stringResource(R.string.save), tint = MaterialTheme.colorScheme.primary) } },
+                actions = { IconButton(onClick = viewModel::saveNote, enabled = !uiState.isSaving && (uiState.title.isNotBlank() || uiState.content.isNotBlank())) { Icon(Icons.Filled.Check, stringResource(R.string.save), tint = MaterialTheme.colorScheme.primary) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background))
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -325,7 +367,7 @@ fun AddNoteScreen(
 
             // Save button
             Button(onClick = viewModel::saveNote, Modifier.fillMaxWidth().height(52.dp), shape = MaterialTheme.shapes.medium,
-                enabled = uiState.title.isNotBlank() || uiState.content.isNotBlank()) {
+                enabled = !uiState.isSaving && (uiState.title.isNotBlank() || uiState.content.isNotBlank())) {
                 Icon(Icons.Filled.Save, null); Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.save_note), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
