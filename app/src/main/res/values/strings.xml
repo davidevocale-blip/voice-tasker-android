@@ -55,6 +55,16 @@
     <string name="reminder_one_day_before">1 giorno prima</string>
     <string name="reminder_twelve_hours_before">12 ore prima</string>
     <string name="reminder_two_hours_before">2 ore prima</string>
+    <string name="reminder_failure_missing_date">seleziona una data</string>
+    <string name="reminder_failure_missing_time">imposta un orario</string>
+    <string name="reminder_failure_invalid_date">la data salvata non è riconoscibile</string>
+    <string name="reminder_failure_invalid_time">l’orario deve essere nel formato HH:mm</string>
+    <string name="reminder_failure_trigger_in_past">l’orario del promemoria è già passato</string>
+    <string name="reminder_failure_nonexistent_local_time">l’orario non esiste in questa data a causa del cambio dell’ora</string>
+    <string name="reminder_failure_persistence">salvataggio del promemoria non riuscito</string>
+    <string name="reminder_failure_scheduling">programmazione del promemoria non riuscita</string>
+    <string name="note_saved_reminder_warning">Nota salvata, ma promemoria non programmato: %1$s.</string>
+    <string name="reminder_not_scheduled">Promemoria non programmato: %1$s.</string>
 
     <!-- Home -->
     <string name="upgrade_to_premium">Passa a Premium</string>

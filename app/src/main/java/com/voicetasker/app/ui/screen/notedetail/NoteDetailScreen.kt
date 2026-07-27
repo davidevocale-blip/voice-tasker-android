@@ -510,6 +510,17 @@ fun NoteDetailScreen(
                         }
                     }
                 }
+                uiState.reminderFailureRes?.let { reasonRes ->
+                    Spacer(Modifier.height(VoiceTaskerSpacing.xs))
+                    Text(
+                        text = stringResource(
+                            R.string.reminder_not_scheduled,
+                            stringResource(reasonRes)
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
                 Spacer(Modifier.height(VoiceTaskerSpacing.sm))
                 if (uiState.isPremium) {
                     FlowRow(

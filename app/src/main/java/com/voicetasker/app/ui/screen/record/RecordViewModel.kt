@@ -9,16 +9,19 @@ import com.voicetasker.app.data.recorder.SpeechTranscriberImpl
 import com.voicetasker.app.domain.model.Category
 import com.voicetasker.app.domain.model.Note
 import com.voicetasker.app.domain.model.ReminderType
+import com.voicetasker.app.domain.reminder.ReminderDateNormalizer
 import com.voicetasker.app.domain.ai.NoteAiProcessor
 import com.voicetasker.app.domain.ai.NoteAiResult
 import com.voicetasker.app.domain.ai.toFallback
 import com.voicetasker.app.domain.repository.CategoryRepository
 import com.voicetasker.app.domain.repository.NoteRepository
 import com.voicetasker.app.domain.repository.ReminderRepository
+import com.voicetasker.app.domain.repository.ReminderScheduleResult
 import com.voicetasker.app.util.FeedbackManager
 import com.voicetasker.app.ui.resources.StringResolver
 import com.voicetasker.app.ui.resources.UiText
 import com.voicetasker.app.ui.resources.messageRes
+import com.voicetasker.app.ui.resources.toCompletedNoteSaveUiResult
 import com.voicetasker.app.ui.resources.toUiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -28,9 +31,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.time.LocalDate
-import java.util.Locale
 import javax.inject.Inject
 
 data class RecordUiState(
@@ -41,6 +42,7 @@ data class RecordUiState(
     val categories: List<Category> = emptyList(),
     val selectedCategoryId: Long? = null,
     val scheduledDate: Long = System.currentTimeMillis(),
+    val isDateSelected: Boolean = false,
     val selectedReminders: Set<ReminderType> = emptySet(),
     val amplitudes: List<Float> = emptyList(),
     val isSaved: Boolean = false,
@@ -50,6 +52,8 @@ data class RecordUiState(
     val noteTime: String = "",
     val noteDate: String = "",
     val errorMessage: UiText? = null,
+    val reminderFailureRes: Int? = null,
+    val isSaving: Boolean = false,
     val authenticationRequired: Boolean = false,
     val isPremium: Boolean = false,
     val maxDurationMs: Long = 60_000L // 1 min free, 10 min premium
@@ -101,7 +105,8 @@ class RecordViewModel @Inject constructor(
                 isRecording = true, amplitudes = emptyList(), recordingDurationMs = 0,
                 transcription = "", errorMessage = null, title = "", aiTitleSuggestion = null,
                 location = "", noteTime = "", noteDate = "", isAiProcessing = false,
-                authenticationRequired = false
+                authenticationRequired = false, isDateSelected = false,
+                scheduledDate = System.currentTimeMillis(), reminderFailureRes = null
             )
         }
 
@@ -222,10 +227,12 @@ class RecordViewModel @Inject constructor(
                 authenticationRequired = false
             )
             if (metadata.date != null) {
-                try {
-                    val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(metadata.date)
-                    if (parsed != null) updated = updated.copy(scheduledDate = parsed.time)
-                } catch (_: Exception) {}
+                ReminderDateNormalizer.fromIsoDate(metadata.date)?.let { canonicalDate ->
+                    updated = updated.copy(
+                        scheduledDate = canonicalDate,
+                        isDateSelected = true
+                    )
+                }
             }
             if (metadata.category != null) {
                 val categoryId = state.categories.find {
@@ -240,7 +247,13 @@ class RecordViewModel @Inject constructor(
     fun onTitleChanged(t: String) { _uiState.update { it.copy(title = t) } }
     fun onTranscriptionChanged(t: String) { _uiState.update { it.copy(transcription = t) } }
     fun onCategorySelected(id: Long) { _uiState.update { it.copy(selectedCategoryId = id) } }
-    fun onScheduledDateChanged(d: Long) { _uiState.update { it.copy(scheduledDate = d) } }
+    fun onScheduledDateChanged(d: Long) {
+        ReminderDateNormalizer.fromDatePickerMillis(d)?.let { canonicalDate ->
+            _uiState.update {
+                it.copy(scheduledDate = canonicalDate, isDateSelected = true)
+            }
+        }
+    }
     fun onLocationChanged(l: String) { _uiState.update { it.copy(location = l) } }
     fun onTimeChanged(t: String) { _uiState.update { it.copy(noteTime = t) } }
     fun onReminderToggled(type: ReminderType) {
@@ -252,6 +265,8 @@ class RecordViewModel @Inject constructor(
     }
 
     fun saveNote() {
+        if (_uiState.value.isSaving || _uiState.value.isSaved) return
+        _uiState.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             val s = _uiState.value
             val now = System.currentTimeMillis()
@@ -268,11 +283,24 @@ class RecordViewModel @Inject constructor(
                     noteTime = s.noteTime
                 )
             )
+            val reminderResults = mutableListOf<ReminderScheduleResult>()
             s.selectedReminders.forEach { type ->
-                reminderRepository.scheduleReminder(noteId, s.scheduledDate, type)
+                reminderResults += reminderRepository.scheduleReminder(
+                    noteId = noteId,
+                    scheduledDate = s.scheduledDate.takeIf { s.isDateSelected },
+                    noteTime = s.noteTime,
+                    type = type
+                )
             }
+            val completion = reminderResults.toCompletedNoteSaveUiResult()
             feedbackManager.play(FeedbackManager.FeedbackType.SAVE)
-            _uiState.update { it.copy(isSaved = true) }
+            _uiState.update {
+                it.copy(
+                    isSaved = completion.isSaved,
+                    isSaving = false,
+                    reminderFailureRes = completion.reminderFailureRes
+                )
+            }
         }
     }
 

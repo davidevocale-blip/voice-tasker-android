@@ -52,6 +52,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -120,9 +123,21 @@ fun RecordScreen(
     val dateFormatter = remember(locale) {
         localizedDateFormatter(locale)
     }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val reminderWarning = uiState.reminderFailureRes?.let { reasonRes ->
+        stringResource(
+            R.string.note_saved_reminder_warning,
+            stringResource(reasonRes)
+        )
+    }
 
-    LaunchedEffect(uiState.isSaved) {
-        if (uiState.isSaved) onNavigateBack()
+    LaunchedEffect(uiState.isSaved, reminderWarning) {
+        if (uiState.isSaved) {
+            reminderWarning?.let {
+                snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
+            }
+            onNavigateBack()
+        }
     }
     LaunchedEffect(uiState.recordingDurationMs, uiState.isRecording) {
         if (uiState.isRecording && uiState.recordingDurationMs >= uiState.maxDurationMs) {
@@ -141,6 +156,7 @@ fun RecordScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -164,6 +180,7 @@ fun RecordScreen(
                     if (!uiState.isRecording && uiState.transcription.isNotBlank()) {
                         IconButton(
                             onClick = viewModel::saveNote,
+                            enabled = !uiState.isSaving,
                             modifier = Modifier.size(VoiceTaskerSizing.minimumTouchTarget)
                         ) {
                             Icon(
@@ -459,8 +476,9 @@ fun RecordScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = VoiceTaskerSizing.inputMinimumHeight),
-                    enabled = uiState.title.isNotBlank() ||
-                        uiState.transcription.isNotBlank(),
+                    enabled = !uiState.isSaving &&
+                        (uiState.title.isNotBlank() ||
+                            uiState.transcription.isNotBlank()),
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Icon(Icons.Filled.Save, contentDescription = null)
