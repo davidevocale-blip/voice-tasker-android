@@ -224,6 +224,12 @@
     <string name="ai_authentication_required">Accedi per elaborare con AI</string>
     <string name="ai_timeout">Elaborazione AI scaduta. Puoi salvare la nota senza elaborazione.</string>
     <string name="ai_rate_limited">Troppe richieste AI. Riprova più tardi o salva la nota.</string>
+    <string name="ai_text_too_long">La nota è troppo lunga per l’elaborazione AI. Riduci il testo o salvala senza elaborazione.</string>
+    <string name="ai_monthly_quota_exhausted">Hai raggiunto il limite mensile di richieste AI. Puoi comunque salvare la nota.</string>
+    <string name="ai_daily_quota_exhausted">Hai raggiunto il limite giornaliero di richieste AI. Riprova domani o salva la nota.</string>
+    <string name="ai_concurrent_request">È già in corso un’altra richiesta AI. Attendi che termini.</string>
+    <string name="ai_request_in_progress">Questa richiesta AI è ancora in elaborazione. Attendi qualche istante.</string>
+    <string name="ai_idempotency_conflict">La richiesta AI non può essere ripetuta con dati diversi. Riprova.</string>
     <string name="ai_network_error">Rete non disponibile. Puoi salvare la nota senza elaborazione AI.</string>
     <string name="ai_invalid_response">Risposta AI non valida. Puoi salvare la nota originale.</string>
     <string name="ai_server_error">Servizio AI non disponibile. Puoi salvare la nota originale.</string>

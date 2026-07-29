@@ -1,9 +1,10 @@
 export const MAX_BODY_BYTES = 65_536
-export const MAX_TEXT_LENGTH = 20_000
+export const MAX_TEXT_LENGTH = 12_000
 export const MAX_CATEGORY_COUNT = 50
 export const MAX_CATEGORY_LENGTH = 64
 
 const DEFAULT_TIMEOUT_MS = 25_000
+const FINALIZATION_RETRY_DELAY_MS = 50
 const MAX_TITLE_LENGTH = 120
 const MAX_LOCATION_LENGTH = 200
 
@@ -20,6 +21,7 @@ const jsonHeaders: Record<string, string> = {
 }
 
 export interface ProcessNoteRequest {
+  requestId: string
   text: string
   categoryNames: string[]
   currentDate: string
@@ -34,12 +36,84 @@ export interface NoteMetadata {
   category: string | null
 }
 
+export interface AiUsageMetadata {
+  promptTokenCount: number | null
+  candidatesTokenCount: number | null
+  thoughtsTokenCount: number | null
+  cachedContentTokenCount: number | null
+  totalTokenCount: number | null
+}
+
+export interface GeneratedNote {
+  response: unknown
+  usageMetadata: AiUsageMetadata | null
+}
+
 export type GenerateNote = (
   request: ProcessNoteRequest,
   signal: AbortSignal,
-) => Promise<unknown>
+) => Promise<GeneratedNote>
+
+export type AuthenticateUser = (request: Request) => Promise<string | null>
+
+export type ReservationDecision =
+  | {
+    decision: "RESERVED"
+  }
+  | {
+    decision: "REPLAY_SUCCESS"
+    resultPayload: NoteMetadata
+  }
+  | {
+    decision: "REPLAY_FAILURE"
+    responseStatus: number
+    errorCode: string
+    retryAfterSeconds?: number
+  }
+  | {
+    decision:
+      | "MONTHLY_QUOTA_EXHAUSTED"
+      | "DAILY_QUOTA_EXHAUSTED"
+      | "RATE_LIMITED"
+      | "CONCURRENT_REQUEST"
+      | "REQUEST_IN_PROGRESS"
+    retryAfterSeconds?: number
+  }
+  | {
+    decision: "IDEMPOTENCY_CONFLICT"
+  }
+
+export interface FinalizeAiRequest {
+  userId: string
+  requestId: string
+  status:
+    | "succeeded"
+    | "upstream_timeout"
+    | "upstream_rate_limited"
+    | "upstream_error"
+    | "invalid_ai_response"
+    | "service_unavailable"
+  responseStatus: number
+  errorCode: string | null
+  retryAfterSeconds: number | null
+  resultPayload: NoteMetadata | null
+  usageMetadata: AiUsageMetadata | null
+}
+
+export interface AiUsageStore {
+  reserve(
+    userId: string,
+    requestId: string,
+    requestFingerprint: string,
+    inputCharacterCount: number,
+  ): Promise<ReservationDecision>
+  finalize(request: FinalizeAiRequest): Promise<void>
+}
 
 export interface HandlerDependencies {
+  authenticateUser: AuthenticateUser
+  validateAiConfiguration: () => void
+  usageStore: AiUsageStore
   generateNote: GenerateNote
   timeoutMs?: number
 }
@@ -74,6 +148,7 @@ export class InvalidAiResponseError extends Error {
 }
 
 class InvalidRequestError extends Error {}
+class TextTooLongError extends Error {}
 class PayloadTooLargeError extends Error {}
 class RequestTimeoutError extends Error {}
 
@@ -94,14 +169,25 @@ function jsonResponse(
 function errorResponse(
   status: number,
   code: string,
+  retryAfterSeconds?: number,
   additionalHeaders: Record<string, string> = {},
 ): Response {
-  return jsonResponse({ error: { code } }, status, additionalHeaders)
-}
-
-function hasBearerAuthorization(request: Request): boolean {
-  const authorization = request.headers.get("authorization")
-  return authorization !== null && /^Bearer\s+\S+$/i.test(authorization)
+  const retry = retryAfterSeconds !== undefined && retryAfterSeconds > 0
+    ? Math.ceil(retryAfterSeconds)
+    : undefined
+  return jsonResponse(
+    {
+      error: {
+        code,
+        ...(retry === undefined ? {} : { retryAfterSeconds: retry }),
+      },
+    },
+    status,
+    {
+      ...(retry === undefined ? {} : { "Retry-After": String(retry) }),
+      ...additionalHeaders,
+    },
+  )
 }
 
 async function readBodyWithLimit(
@@ -171,22 +257,39 @@ function isValidDate(value: string): boolean {
 function validateRequestBody(value: unknown): ProcessNoteRequest {
   if (!isRecord(value)) throw new InvalidRequestError()
 
-  const allowedFields = new Set(["text", "categoryNames", "currentDate"])
+  const allowedFields = new Set([
+    "requestId",
+    "text",
+    "categoryNames",
+    "currentDate",
+  ])
   const fields = Object.keys(value)
   if (
-    fields.length !== allowedFields.size ||
+    fields.length < allowedFields.size - 1 ||
+    fields.length > allowedFields.size ||
     fields.some((field) => !allowedFields.has(field))
+  ) {
+    throw new InvalidRequestError()
+  }
+
+  const requestId = value.requestId === undefined
+    ? crypto.randomUUID()
+    : value.requestId
+  if (
+    typeof requestId !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      .test(requestId)
   ) {
     throw new InvalidRequestError()
   }
 
   if (
     typeof value.text !== "string" ||
-    value.text.trim().length === 0 ||
-    value.text.length > MAX_TEXT_LENGTH
+    value.text.trim().length === 0
   ) {
     throw new InvalidRequestError()
   }
+  if (value.text.length > MAX_TEXT_LENGTH) throw new TextTooLongError()
 
   if (
     !Array.isArray(value.categoryNames) ||
@@ -217,6 +320,7 @@ function validateRequestBody(value: unknown): ProcessNoteRequest {
   }
 
   return {
+    requestId: requestId.toLowerCase(),
     text: value.text,
     categoryNames,
     currentDate: value.currentDate,
@@ -326,17 +430,76 @@ function validateAiResponse(
   }
 }
 
-function retryAfterHeader(error: UpstreamHttpError): Record<string, string> {
-  const seconds = error.retryAfterSeconds
-  if (
-    seconds === undefined ||
-    !Number.isInteger(seconds) ||
-    seconds < 1 ||
-    seconds > 3_600
-  ) {
-    return {}
+async function requestFingerprint(
+  request: ProcessNoteRequest,
+): Promise<string> {
+  const canonicalPayload = JSON.stringify({
+    text: request.text,
+    categoryNames: request.categoryNames,
+    currentDate: request.currentDate,
+  })
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(canonicalPayload),
+  )
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
+}
+
+function reservationResponse(
+  reservation: Exclude<ReservationDecision, { decision: "RESERVED" }>,
+  allowedCategories: string[],
+): Response {
+  switch (reservation.decision) {
+    case "REPLAY_SUCCESS": {
+      const validatedPayload = validateAiResponse({
+        candidates: [{
+          content: {
+            parts: [{ text: JSON.stringify(reservation.resultPayload) }],
+          },
+        }],
+      }, allowedCategories)
+      return jsonResponse(validatedPayload, 200)
+    }
+    case "REPLAY_FAILURE":
+      return errorResponse(
+        reservation.responseStatus,
+        reservation.errorCode,
+        reservation.retryAfterSeconds,
+      )
+    case "MONTHLY_QUOTA_EXHAUSTED":
+    case "DAILY_QUOTA_EXHAUSTED":
+    case "RATE_LIMITED":
+      return errorResponse(
+        429,
+        reservation.decision,
+        reservation.retryAfterSeconds,
+      )
+    case "CONCURRENT_REQUEST":
+    case "REQUEST_IN_PROGRESS":
+      return errorResponse(
+        409,
+        reservation.decision,
+        reservation.retryAfterSeconds,
+      )
+    case "IDEMPOTENCY_CONFLICT":
+      return errorResponse(409, reservation.decision)
   }
-  return { "Retry-After": String(seconds) }
+}
+
+async function finalizeWithOneRetry(
+  usageStore: AiUsageStore,
+  request: FinalizeAiRequest,
+): Promise<void> {
+  try {
+    await usageStore.finalize(request)
+  } catch {
+    await new Promise((resolve) =>
+      globalThis.setTimeout(resolve, FINALIZATION_RETRY_DELAY_MS)
+    )
+    await usageStore.finalize(request)
+  }
 }
 
 export function createHandler(
@@ -352,12 +515,19 @@ export function createHandler(
       return new Response(null, { status: 204, headers: corsHeaders })
     }
     if (request.method !== "POST") {
-      return errorResponse(405, "METHOD_NOT_ALLOWED", {
+      return errorResponse(405, "METHOD_NOT_ALLOWED", undefined, {
         Allow: "POST, OPTIONS",
       })
     }
-    if (!hasBearerAuthorization(request)) {
-      return errorResponse(401, "UNAUTHENTICATED")
+
+    let userId: string | null
+    try {
+      userId = await dependencies.authenticateUser(request)
+    } catch {
+      return errorResponse(503, "SERVICE_UNAVAILABLE")
+    }
+    if (userId === null) {
+      return errorResponse(401, "AUTHENTICATION_INVALID")
     }
 
     let validatedRequest: ProcessNoteRequest
@@ -368,7 +538,38 @@ export function createHandler(
       if (error instanceof PayloadTooLargeError) {
         return errorResponse(413, "PAYLOAD_TOO_LARGE")
       }
+      if (error instanceof TextTooLongError) {
+        return errorResponse(400, "TEXT_TOO_LONG")
+      }
       return errorResponse(400, "INVALID_REQUEST")
+    }
+
+    try {
+      dependencies.validateAiConfiguration()
+    } catch {
+      return errorResponse(503, "SERVICE_UNAVAILABLE")
+    }
+
+    let reservation: ReservationDecision
+    try {
+      reservation = await dependencies.usageStore.reserve(
+        userId,
+        validatedRequest.requestId,
+        await requestFingerprint(validatedRequest),
+        validatedRequest.text.length,
+      )
+    } catch {
+      return errorResponse(503, "SERVICE_UNAVAILABLE")
+    }
+    if (reservation.decision !== "RESERVED") {
+      try {
+        return reservationResponse(
+          reservation,
+          validatedRequest.categoryNames,
+        )
+      } catch {
+        return errorResponse(503, "SERVICE_UNAVAILABLE")
+      }
     }
 
     const controller = new AbortController()
@@ -380,41 +581,99 @@ export function createHandler(
       }, timeoutMs)
     })
 
+    let response: Response
+    let finalization: Omit<FinalizeAiRequest, "userId" | "requestId">
+    let usageMetadata: AiUsageMetadata | null = null
     try {
-      const upstreamResponse = await Promise.race([
+      const generatedNote = await Promise.race([
         dependencies.generateNote(validatedRequest, controller.signal),
         timeout,
       ])
+      usageMetadata = generatedNote.usageMetadata
       const metadata = validateAiResponse(
-        upstreamResponse,
+        generatedNote.response,
         validatedRequest.categoryNames,
       )
-      return jsonResponse(metadata, 200)
+      response = jsonResponse(metadata, 200)
+      finalization = {
+        status: "succeeded",
+        responseStatus: 200,
+        errorCode: null,
+        retryAfterSeconds: null,
+        resultPayload: metadata,
+        usageMetadata,
+      }
     } catch (error) {
       if (error instanceof RequestTimeoutError || controller.signal.aborted) {
-        return errorResponse(504, "UPSTREAM_TIMEOUT")
-      }
-      if (error instanceof ServiceConfigurationError) {
-        return errorResponse(503, "SERVICE_UNAVAILABLE")
-      }
-      if (error instanceof UpstreamHttpError) {
-        if (error.status === 429) {
-          return errorResponse(
-            429,
-            "UPSTREAM_RATE_LIMITED",
-            retryAfterHeader(error),
-          )
+        response = errorResponse(504, "UPSTREAM_TIMEOUT")
+        finalization = {
+          status: "upstream_timeout",
+          responseStatus: 504,
+          errorCode: "UPSTREAM_TIMEOUT",
+          retryAfterSeconds: null,
+          resultPayload: null,
+          usageMetadata,
         }
-        return errorResponse(502, "UPSTREAM_ERROR")
+      } else if (error instanceof ServiceConfigurationError) {
+        response = errorResponse(503, "SERVICE_UNAVAILABLE")
+        finalization = {
+          status: "service_unavailable",
+          responseStatus: 503,
+          errorCode: "SERVICE_UNAVAILABLE",
+          retryAfterSeconds: null,
+          resultPayload: null,
+          usageMetadata,
+        }
+      } else if (error instanceof UpstreamHttpError && error.status === 429) {
+        response = errorResponse(
+          429,
+          "UPSTREAM_RATE_LIMITED",
+          error.retryAfterSeconds,
+        )
+        finalization = {
+          status: "upstream_rate_limited",
+          responseStatus: 429,
+          errorCode: "UPSTREAM_RATE_LIMITED",
+          retryAfterSeconds: error.retryAfterSeconds ?? null,
+          resultPayload: null,
+          usageMetadata,
+        }
+      } else if (error instanceof InvalidAiResponseError) {
+        response = errorResponse(502, "INVALID_AI_RESPONSE")
+        finalization = {
+          status: "invalid_ai_response",
+          responseStatus: 502,
+          errorCode: "INVALID_AI_RESPONSE",
+          retryAfterSeconds: null,
+          resultPayload: null,
+          usageMetadata,
+        }
+      } else {
+        response = errorResponse(502, "UPSTREAM_ERROR")
+        finalization = {
+          status: "upstream_error",
+          responseStatus: 502,
+          errorCode: "UPSTREAM_ERROR",
+          retryAfterSeconds: null,
+          resultPayload: null,
+          usageMetadata,
+        }
       }
-      if (error instanceof InvalidAiResponseError) {
-        return errorResponse(502, "INVALID_AI_RESPONSE")
-      }
-      return errorResponse(502, "UPSTREAM_ERROR")
     } finally {
       if (timeoutIdentifier !== undefined) {
         globalThis.clearTimeout(timeoutIdentifier)
       }
     }
+
+    try {
+      await finalizeWithOneRetry(dependencies.usageStore, {
+        userId,
+        requestId: validatedRequest.requestId,
+        ...finalization,
+      })
+    } catch {
+      return errorResponse(503, "SERVICE_UNAVAILABLE")
+    }
+    return response
   }
 }

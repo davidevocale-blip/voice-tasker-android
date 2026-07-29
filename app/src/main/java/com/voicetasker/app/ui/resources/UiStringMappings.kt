@@ -18,7 +18,13 @@ fun ReminderType.labelRes(): Int = when (this) {
 fun NoteAiFailureReason.messageRes(): Int = when (this) {
     NoteAiFailureReason.AUTHENTICATION_REQUIRED -> R.string.ai_authentication_required
     NoteAiFailureReason.TIMEOUT -> R.string.ai_timeout
+    NoteAiFailureReason.TEXT_TOO_LONG -> R.string.ai_text_too_long
+    NoteAiFailureReason.MONTHLY_QUOTA_EXHAUSTED -> R.string.ai_monthly_quota_exhausted
+    NoteAiFailureReason.DAILY_QUOTA_EXHAUSTED -> R.string.ai_daily_quota_exhausted
     NoteAiFailureReason.RATE_LIMITED -> R.string.ai_rate_limited
+    NoteAiFailureReason.CONCURRENT_REQUEST -> R.string.ai_concurrent_request
+    NoteAiFailureReason.REQUEST_IN_PROGRESS -> R.string.ai_request_in_progress
+    NoteAiFailureReason.IDEMPOTENCY_CONFLICT -> R.string.ai_idempotency_conflict
     NoteAiFailureReason.NETWORK_ERROR -> R.string.ai_network_error
     NoteAiFailureReason.INVALID_RESPONSE -> R.string.ai_invalid_response
     NoteAiFailureReason.SERVER_ERROR -> R.string.ai_server_error

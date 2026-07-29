@@ -17,6 +17,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.net.SocketTimeoutException
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -58,7 +59,7 @@ private class SupabaseNoteAiRemote(
         } catch (error: RestException) {
             NoteAiRemoteResponse(
                 statusCode = error.statusCode,
-                body = "",
+                body = error.error,
                 retryAfterSeconds = null
             )
         }
@@ -90,7 +91,12 @@ class SupabaseNoteAiProcessor internal constructor(
         categoryNames: List<String>,
         currentDate: String
     ): NoteAiResult {
-        val request = ProcessNoteAiRequest(text, categoryNames, currentDate)
+        val request = ProcessNoteAiRequest(
+            requestId = UUID.randomUUID().toString(),
+            text = text,
+            categoryNames = categoryNames,
+            currentDate = currentDate
+        )
         return try {
             remote.awaitInitialization()
             if (!remote.hasCurrentSession()) {
@@ -143,16 +149,50 @@ class SupabaseNoteAiProcessor internal constructor(
         internal fun mapResponse(
             response: NoteAiRemoteResponse,
             categoryNames: List<String>
-        ): NoteAiResult = when (response.statusCode) {
-            HttpStatusCode.OK.value -> decodeSuccess(response.body, categoryNames)
-            HttpStatusCode.Unauthorized.value -> NoteAiResult.SessionExpired
-            HttpStatusCode.RequestTimeout.value,
-            HttpStatusCode.GatewayTimeout.value -> NoteAiResult.Timeout
-            HttpStatusCode.TooManyRequests.value ->
-                NoteAiResult.RateLimited(response.retryAfterSeconds)
-            in 400..599 -> NoteAiResult.ServerError(response.statusCode)
-            else -> NoteAiResult.InvalidResponse
+        ): NoteAiResult {
+            val applicationError = decodeApplicationError(response.body)
+            val retryAfterSeconds =
+                applicationError?.retryAfterSeconds ?: response.retryAfterSeconds
+            return when (response.statusCode) {
+                HttpStatusCode.OK.value -> decodeSuccess(response.body, categoryNames)
+                HttpStatusCode.Unauthorized.value -> NoteAiResult.SessionExpired
+                HttpStatusCode.RequestTimeout.value,
+                HttpStatusCode.GatewayTimeout.value -> NoteAiResult.Timeout
+                else -> when (applicationError?.code) {
+                    "TEXT_TOO_LONG" ->
+                        NoteAiResult.TextTooLong
+                    "MONTHLY_QUOTA_EXHAUSTED" ->
+                        NoteAiResult.MonthlyQuotaExhausted(retryAfterSeconds)
+                    "DAILY_QUOTA_EXHAUSTED" ->
+                        NoteAiResult.DailyQuotaExhausted(retryAfterSeconds)
+                    "RATE_LIMITED" ->
+                        NoteAiResult.RateLimited(retryAfterSeconds)
+                    "CONCURRENT_REQUEST" ->
+                        NoteAiResult.ConcurrentRequest(retryAfterSeconds)
+                    "REQUEST_IN_PROGRESS" ->
+                        NoteAiResult.RequestInProgress(retryAfterSeconds)
+                    "IDEMPOTENCY_CONFLICT" ->
+                        NoteAiResult.IdempotencyConflict
+                    "AUTHENTICATION_INVALID" ->
+                        NoteAiResult.SessionExpired
+                    else -> when (response.statusCode) {
+                        HttpStatusCode.TooManyRequests.value ->
+                            NoteAiResult.RateLimited(retryAfterSeconds)
+                        in 400..599 -> NoteAiResult.ServerError(response.statusCode)
+                        else -> NoteAiResult.InvalidResponse
+                    }
+                }
+            }
         }
+
+        private fun decodeApplicationError(body: String): ProcessNoteAiError? =
+            try {
+                json.decodeFromString<ProcessNoteAiErrorResponse>(body).error
+            } catch (error: SerializationException) {
+                null
+            } catch (error: IllegalArgumentException) {
+                null
+            }
 
         private fun decodeSuccess(
             body: String,

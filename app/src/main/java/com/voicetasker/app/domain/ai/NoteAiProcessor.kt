@@ -14,7 +14,13 @@ sealed interface NoteAiResult {
     data object AuthenticationRequired : NoteAiResult
     data object SessionExpired : NoteAiResult
     data object Timeout : NoteAiResult
+    data object TextTooLong : NoteAiResult
+    data class MonthlyQuotaExhausted(val retryAfterSeconds: Long?) : NoteAiResult
+    data class DailyQuotaExhausted(val retryAfterSeconds: Long?) : NoteAiResult
     data class RateLimited(val retryAfterSeconds: Long?) : NoteAiResult
+    data class ConcurrentRequest(val retryAfterSeconds: Long?) : NoteAiResult
+    data class RequestInProgress(val retryAfterSeconds: Long?) : NoteAiResult
+    data object IdempotencyConflict : NoteAiResult
     data object NetworkError : NoteAiResult
     data object InvalidResponse : NoteAiResult
     data class ServerError(val statusCode: Int?) : NoteAiResult
@@ -38,7 +44,13 @@ data class NoteAiFallback(
 enum class NoteAiFailureReason {
     AUTHENTICATION_REQUIRED,
     TIMEOUT,
+    TEXT_TOO_LONG,
+    MONTHLY_QUOTA_EXHAUSTED,
+    DAILY_QUOTA_EXHAUSTED,
     RATE_LIMITED,
+    CONCURRENT_REQUEST,
+    REQUEST_IN_PROGRESS,
+    IDEMPOTENCY_CONFLICT,
     NETWORK_ERROR,
     INVALID_RESPONSE,
     SERVER_ERROR
@@ -64,10 +76,46 @@ fun NoteAiResult.toFallback(originalText: String): NoteAiFallback = when (this) 
         failureReason = NoteAiFailureReason.TIMEOUT,
         authenticationRequired = false
     )
+    NoteAiResult.TextTooLong -> NoteAiFallback(
+        text = originalText,
+        canSaveLocally = true,
+        failureReason = NoteAiFailureReason.TEXT_TOO_LONG,
+        authenticationRequired = false
+    )
+    is NoteAiResult.MonthlyQuotaExhausted -> NoteAiFallback(
+        text = originalText,
+        canSaveLocally = true,
+        failureReason = NoteAiFailureReason.MONTHLY_QUOTA_EXHAUSTED,
+        authenticationRequired = false
+    )
+    is NoteAiResult.DailyQuotaExhausted -> NoteAiFallback(
+        text = originalText,
+        canSaveLocally = true,
+        failureReason = NoteAiFailureReason.DAILY_QUOTA_EXHAUSTED,
+        authenticationRequired = false
+    )
     is NoteAiResult.RateLimited -> NoteAiFallback(
         text = originalText,
         canSaveLocally = true,
         failureReason = NoteAiFailureReason.RATE_LIMITED,
+        authenticationRequired = false
+    )
+    is NoteAiResult.ConcurrentRequest -> NoteAiFallback(
+        text = originalText,
+        canSaveLocally = true,
+        failureReason = NoteAiFailureReason.CONCURRENT_REQUEST,
+        authenticationRequired = false
+    )
+    is NoteAiResult.RequestInProgress -> NoteAiFallback(
+        text = originalText,
+        canSaveLocally = true,
+        failureReason = NoteAiFailureReason.REQUEST_IN_PROGRESS,
+        authenticationRequired = false
+    )
+    NoteAiResult.IdempotencyConflict -> NoteAiFallback(
+        text = originalText,
+        canSaveLocally = true,
+        failureReason = NoteAiFailureReason.IDEMPOTENCY_CONFLICT,
         authenticationRequired = false
     )
     NoteAiResult.NetworkError -> NoteAiFallback(

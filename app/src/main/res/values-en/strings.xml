@@ -218,6 +218,12 @@
     <string name="ai_authentication_required">Sign in to process with AI</string>
     <string name="ai_timeout">AI processing timed out. You can save the note without processing it.</string>
     <string name="ai_rate_limited">Too many AI requests. Try again later or save the note.</string>
+    <string name="ai_text_too_long">The note is too long for AI processing. Shorten it or save it without processing.</string>
+    <string name="ai_monthly_quota_exhausted">You have reached the monthly AI request limit. You can still save the note.</string>
+    <string name="ai_daily_quota_exhausted">You have reached the daily AI request limit. Try again tomorrow or save the note.</string>
+    <string name="ai_concurrent_request">Another AI request is already running. Wait for it to finish.</string>
+    <string name="ai_request_in_progress">This AI request is still being processed. Wait a moment.</string>
+    <string name="ai_idempotency_conflict">The AI request cannot be repeated with different data. Try again.</string>
     <string name="ai_network_error">Network unavailable. You can save the note without AI processing.</string>
     <string name="ai_invalid_response">Invalid AI response. You can save the original note.</string>
     <string name="ai_server_error">AI service unavailable. You can save the original note.</string>

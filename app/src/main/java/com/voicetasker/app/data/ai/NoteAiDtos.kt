@@ -5,9 +5,21 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 internal data class ProcessNoteAiRequest(
+    val requestId: String,
     val text: String,
     val categoryNames: List<String>,
     val currentDate: String
+)
+
+@Serializable
+internal data class ProcessNoteAiErrorResponse(
+    val error: ProcessNoteAiError
+)
+
+@Serializable
+internal data class ProcessNoteAiError(
+    val code: String,
+    val retryAfterSeconds: Long? = null
 )
 
 @Serializable

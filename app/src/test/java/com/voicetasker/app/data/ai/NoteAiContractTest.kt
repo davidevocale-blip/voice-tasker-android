@@ -25,9 +25,10 @@ class NoteAiContractTest {
     """.trimIndent()
 
     @Test
-    fun `request contains only the three allowed fields`() {
+    fun `request contains only request id and note fields`() {
         val encoded = SupabaseNoteAiProcessor.encodeRequest(
             ProcessNoteAiRequest(
+                requestId = "123e4567-e89b-42d3-a456-426614174000",
                 text = "Nota da elaborare",
                 categoryNames = listOf("Lavoro"),
                 currentDate = "2026-07-22"
@@ -35,7 +36,7 @@ class NoteAiContractTest {
         )
         val fields = Json.parseToJsonElement(encoded).jsonObject.keys
 
-        assertEquals(setOf("text", "categoryNames", "currentDate"), fields)
+        assertEquals(setOf("requestId", "text", "categoryNames", "currentDate"), fields)
         listOf("userId", "email", "jwt", "token", "apiKey", "secret", "audio").forEach {
             assertFalse(encoded.contains(it, ignoreCase = true))
         }
@@ -93,6 +94,7 @@ class NoteAiContractTest {
         assertTrue(result is NoteAiResult.Success)
         assertEquals(1, remote.refreshCount)
         assertEquals(2, remote.invokeCount)
+        assertEquals(1, remote.requests.map { it.requestId }.distinct().size)
     }
 
     @Test
@@ -146,6 +148,56 @@ class NoteAiContractTest {
     }
 
     @Test
+    fun `application errors map distinctly without retries`() = runBlocking {
+        val cases = listOf(
+            Triple(400, "TEXT_TOO_LONG", NoteAiResult.TextTooLong),
+            Triple(429, "MONTHLY_QUOTA_EXHAUSTED", NoteAiResult.MonthlyQuotaExhausted(60)),
+            Triple(429, "DAILY_QUOTA_EXHAUSTED", NoteAiResult.DailyQuotaExhausted(60)),
+            Triple(429, "RATE_LIMITED", NoteAiResult.RateLimited(60)),
+            Triple(409, "CONCURRENT_REQUEST", NoteAiResult.ConcurrentRequest(60)),
+            Triple(409, "REQUEST_IN_PROGRESS", NoteAiResult.RequestInProgress(60)),
+            Triple(409, "IDEMPOTENCY_CONFLICT", NoteAiResult.IdempotencyConflict)
+        )
+
+        cases.forEach { (status, code, expected) ->
+            val body = """{"error":{"code":"$code","retryAfterSeconds":60}}"""
+            val remote = FakeRemote(responses = ArrayDeque(listOf(response(status, body))))
+            val processor = SupabaseNoteAiProcessor(remote, 1_000)
+
+            assertEquals(expected, processor.process("Nota", emptyList(), "2026-07-22"))
+            assertEquals(1, remote.invokeCount)
+            assertEquals(0, remote.refreshCount)
+        }
+    }
+
+    @Test
+    fun `server error is not retried`() = runBlocking {
+        val remote = FakeRemote(responses = ArrayDeque(listOf(response(500))))
+        val processor = SupabaseNoteAiProcessor(remote, 1_000)
+
+        assertEquals(
+            NoteAiResult.ServerError(500),
+            processor.process("Nota", emptyList(), "2026-07-22")
+        )
+        assertEquals(1, remote.invokeCount)
+        assertEquals(0, remote.refreshCount)
+    }
+
+    @Test
+    fun `process creates a valid uuid request id`() = runBlocking {
+        val remote = FakeRemote(responses = ArrayDeque(listOf(response(200, validBody))))
+        val processor = SupabaseNoteAiProcessor(remote, 1_000)
+
+        processor.process("Nota", listOf("Lavoro"), "2026-07-22")
+
+        assertTrue(
+            Regex(
+                """[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"""
+            ).matches(remote.requests.single().requestId)
+        )
+    }
+
+    @Test
     fun `invalid or unexpected success body is rejected`() = runBlocking {
         val processor = processorWith(response(200, """{"title":"Nota","improvedText":"Testo","date":null,"time":null,"location":null,"category":null,"token":"forbidden"}"""))
 
@@ -171,6 +223,7 @@ class NoteAiContractTest {
     ) : NoteAiRemote {
         var invokeCount = 0
         var refreshCount = 0
+        val requests = mutableListOf<ProcessNoteAiRequest>()
 
         override suspend fun awaitInitialization() = Unit
 
@@ -178,6 +231,7 @@ class NoteAiContractTest {
 
         override suspend fun invoke(request: ProcessNoteAiRequest): NoteAiRemoteResponse {
             invokeCount++
+            requests += request
             failure?.let { throw it }
             if (delayForever) delay(Long.MAX_VALUE)
             return responses.removeFirst()

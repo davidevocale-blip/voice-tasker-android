@@ -14,7 +14,13 @@ class NoteAiFallbackPolicyTest {
             NoteAiResult.AuthenticationRequired,
             NoteAiResult.SessionExpired,
             NoteAiResult.Timeout,
+            NoteAiResult.TextTooLong,
+            NoteAiResult.MonthlyQuotaExhausted(retryAfterSeconds = 60),
+            NoteAiResult.DailyQuotaExhausted(retryAfterSeconds = 60),
             NoteAiResult.RateLimited(retryAfterSeconds = 60),
+            NoteAiResult.ConcurrentRequest(retryAfterSeconds = 30),
+            NoteAiResult.RequestInProgress(retryAfterSeconds = 30),
+            NoteAiResult.IdempotencyConflict,
             NoteAiResult.NetworkError,
             NoteAiResult.InvalidResponse,
             NoteAiResult.ServerError(statusCode = 503)
