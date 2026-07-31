@@ -1,6 +1,8 @@
 package com.voicetasker.app.data.ai
 
 import com.voicetasker.app.domain.ai.NoteAiProcessor
+import com.voicetasker.app.domain.ai.NoteAiOperation
+import com.voicetasker.app.domain.ai.NoteAiRequestIdDisposition
 import com.voicetasker.app.domain.ai.NoteAiResult
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -17,7 +19,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.net.SocketTimeoutException
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -86,30 +87,26 @@ class SupabaseNoteAiProcessor internal constructor(
         timeoutMs = DEFAULT_TIMEOUT_MS
     )
 
-    override suspend fun process(
-        text: String,
-        categoryNames: List<String>,
-        currentDate: String
-    ): NoteAiResult {
+    override suspend fun process(operation: NoteAiOperation): NoteAiResult {
         val request = ProcessNoteAiRequest(
-            requestId = UUID.randomUUID().toString(),
-            text = text,
-            categoryNames = categoryNames,
-            currentDate = currentDate
+            requestId = operation.requestId,
+            text = operation.text,
+            categoryNames = operation.categoryNames,
+            currentDate = operation.currentDate
         )
         return try {
             remote.awaitInitialization()
             if (!remote.hasCurrentSession()) {
                 NoteAiResult.AuthenticationRequired
             } else {
-                invoke(request, categoryNames, allowRefresh = true)
+                invoke(request, operation.categoryNames, allowRefresh = true)
             }
         } catch (error: TimeoutCancellationException) {
-            NoteAiResult.Timeout
+            NoteAiResult.Timeout()
         } catch (error: HttpRequestTimeoutException) {
-            NoteAiResult.Timeout
+            NoteAiResult.Timeout()
         } catch (error: SocketTimeoutException) {
-            NoteAiResult.Timeout
+            NoteAiResult.Timeout()
         } catch (error: IOException) {
             NoteAiResult.NetworkError
         } catch (error: CancellationException) {
@@ -157,7 +154,14 @@ class SupabaseNoteAiProcessor internal constructor(
                 HttpStatusCode.OK.value -> decodeSuccess(response.body, categoryNames)
                 HttpStatusCode.Unauthorized.value -> NoteAiResult.SessionExpired
                 HttpStatusCode.RequestTimeout.value,
-                HttpStatusCode.GatewayTimeout.value -> NoteAiResult.Timeout
+                HttpStatusCode.GatewayTimeout.value -> NoteAiResult.Timeout(
+                    applicationError?.requestIdDisposition.toDomainDisposition()
+                )
+                in 500..599 -> NoteAiResult.ServerError(
+                    statusCode = response.statusCode,
+                    requestIdDisposition =
+                        applicationError?.requestIdDisposition.toDomainDisposition()
+                )
                 else -> when (applicationError?.code) {
                     "TEXT_TOO_LONG" ->
                         NoteAiResult.TextTooLong
@@ -178,7 +182,11 @@ class SupabaseNoteAiProcessor internal constructor(
                     else -> when (response.statusCode) {
                         HttpStatusCode.TooManyRequests.value ->
                             NoteAiResult.RateLimited(retryAfterSeconds)
-                        in 400..599 -> NoteAiResult.ServerError(response.statusCode)
+                        in 400..499 -> NoteAiResult.ServerError(
+                            statusCode = response.statusCode,
+                            requestIdDisposition =
+                                applicationError?.requestIdDisposition.toDomainDisposition()
+                        )
                         else -> NoteAiResult.InvalidResponse
                     }
                 }
@@ -192,6 +200,13 @@ class SupabaseNoteAiProcessor internal constructor(
                 null
             } catch (error: IllegalArgumentException) {
                 null
+            }
+
+        private fun String?.toDomainDisposition(): NoteAiRequestIdDisposition? =
+            when (this) {
+                "RETRY_SAME" -> NoteAiRequestIdDisposition.RETRY_SAME
+                "NEW_REQUEST" -> NoteAiRequestIdDisposition.NEW_REQUEST
+                else -> null
             }
 
         private fun decodeSuccess(

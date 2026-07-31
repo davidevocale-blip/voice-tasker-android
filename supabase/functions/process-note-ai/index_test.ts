@@ -11,6 +11,7 @@ import {
   type NoteMetadata,
   type ProcessNoteRequest,
   type ReservationDecision,
+  ServiceConfigurationError,
   UpstreamHttpError,
 } from "./handler.ts"
 import {
@@ -238,6 +239,11 @@ Deno.test("maps authentication infrastructure failures to service unavailable", 
     "SERVICE_UNAVAILABLE",
     "unexpected Auth outage code",
   )
+  assertEquals(
+    (body.error as Record<string, unknown>).requestIdDisposition,
+    "RETRY_SAME",
+    "pre-reservation failure did not preserve the request id",
+  )
 })
 
 Deno.test("keeps partial usage metadata and nulls missing fields", () => {
@@ -305,6 +311,11 @@ Deno.test("missing Gemini key is rejected before reservation", async () => {
     (body.error as Record<string, unknown>).code,
     "SERVICE_UNAVAILABLE",
     "missing key returned an unexpected error",
+  )
+  assertEquals(
+    (body.error as Record<string, unknown>).requestIdDisposition,
+    "RETRY_SAME",
+    "pre-reservation configuration failure did not preserve the request id",
   )
   assertEquals(usageStore.reserveCount, 0, "missing key consumed quota")
   assert(!invoked, "missing key invoked Gemini")
@@ -408,13 +419,41 @@ Deno.test("replays a completed idempotent request without invoking Gemini", asyn
   assertEquals(usageStore.finalizations.length, 0, "replay was finalized again")
 })
 
+Deno.test("marks an invalid terminal success replay as a new request", async () => {
+  let invoked = false
+  const usageStore = new FakeUsageStore()
+  usageStore.reservation = {
+    decision: "REPLAY_SUCCESS",
+    resultPayload: { ...validMetadata, title: "" },
+  }
+  const response = await testHandler({
+    usageStore,
+    generateNote: () => {
+      invoked = true
+      return Promise.resolve(geminiEnvelope(validMetadata))
+    },
+  })(requestFor())
+  const body = await responseBody(response)
+  const error = body.error as Record<string, unknown>
+
+  assertEquals(response.status, 503, "invalid success replay changed status")
+  assertEquals(error.code, "SERVICE_UNAVAILABLE", "invalid success replay changed code")
+  assertEquals(
+    error.requestIdDisposition,
+    "NEW_REQUEST",
+    "terminal success replay did not complete the request id",
+  )
+  assert(!invoked, "invalid success replay invoked Gemini")
+  assertEquals(usageStore.finalizations.length, 0, "success replay was finalized again")
+})
+
 Deno.test("replays a failed idempotent request without invoking Gemini", async () => {
   let invoked = false
   const usageStore = new FakeUsageStore()
   usageStore.reservation = {
     decision: "REPLAY_FAILURE",
-    responseStatus: 504,
-    errorCode: "UPSTREAM_TIMEOUT",
+    responseStatus: 503,
+    errorCode: "SERVICE_UNAVAILABLE",
   }
   const response = await testHandler({
     usageStore,
@@ -425,14 +464,40 @@ Deno.test("replays a failed idempotent request without invoking Gemini", async (
   })(requestFor())
   const body = await responseBody(response)
 
-  assertEquals(response.status, 504, "failed request replay changed status")
+  assertEquals(response.status, 503, "failed request replay changed status")
   assertEquals(
     (body.error as Record<string, unknown>).code,
-    "UPSTREAM_TIMEOUT",
+    "SERVICE_UNAVAILABLE",
     "failed request replay changed error code",
+  )
+  assertEquals(
+    (body.error as Record<string, unknown>).requestIdDisposition,
+    "NEW_REQUEST",
+    "failed request replay did not complete the request id",
   )
   assert(!invoked, "failed request replay invoked Gemini")
   assertEquals(usageStore.finalizations.length, 0, "failed replay was finalized again")
+})
+
+Deno.test("marks a finalized service unavailable response as a new request", async () => {
+  const usageStore = new FakeUsageStore()
+  const response = await testHandler({
+    usageStore,
+    generateNote: () => {
+      throw new ServiceConfigurationError()
+    },
+  })(requestFor())
+  const body = await responseBody(response)
+  const error = body.error as Record<string, unknown>
+
+  assertEquals(response.status, 503, "finalized service failure changed status")
+  assertEquals(error.code, "SERVICE_UNAVAILABLE", "finalized service failure changed code")
+  assertEquals(
+    error.requestIdDisposition,
+    "NEW_REQUEST",
+    "finalized service failure did not complete the request id",
+  )
+  assertEquals(usageStore.finalizeAttempts, 1, "service failure was not finalized")
 })
 
 Deno.test("finalizes successful requests with internal token usage", async () => {
@@ -484,8 +549,14 @@ Deno.test("stops after two failed finalizations without retrying Gemini", async 
       return Promise.resolve(geminiEnvelope(validMetadata, validUsage))
     },
   })(requestFor())
+  const body = await responseBody(response)
 
   assertEquals(response.status, 503, "persistent finalization failure was hidden")
+  assertEquals(
+    (body.error as Record<string, unknown>).requestIdDisposition,
+    "RETRY_SAME",
+    "uncertain finalization did not preserve the request id",
+  )
   assertEquals(geminiCalls, 1, "Gemini was retried after finalization failure")
   assertEquals(usageStore.finalizeAttempts, 2, "finalization retried more than once")
 })
@@ -610,6 +681,11 @@ Deno.test("returns a controlled timeout response", async () => {
     "UPSTREAM_TIMEOUT",
     "unexpected timeout code",
   )
+  assertEquals(
+    (body.error as Record<string, unknown>).requestIdDisposition,
+    "NEW_REQUEST",
+    "finalized timeout did not complete the request id",
+  )
 })
 
 Deno.test("maps upstream failures without exposing their body", async () => {
@@ -619,9 +695,15 @@ Deno.test("maps upstream failures without exposing their body", async () => {
     },
   })
   const response = await handler(requestFor())
-  const text = await response.text()
+  const body = await responseBody(response)
+  const error = body.error as Record<string, unknown>
   assertEquals(response.status, 502, "unexpected upstream status")
-  assert(!text.includes("500"), "upstream details leaked into the response")
+  assertEquals(
+    error.requestIdDisposition,
+    "NEW_REQUEST",
+    "finalized upstream failure did not complete the request id",
+  )
+  assert(!JSON.stringify(body).includes("500"), "upstream details leaked into the response")
 })
 
 Deno.test("maps upstream rate limiting and preserves safe retry timing", async () => {
@@ -631,8 +713,14 @@ Deno.test("maps upstream rate limiting and preserves safe retry timing", async (
     },
   })
   const response = await handler(requestFor())
+  const body = await responseBody(response)
   assertEquals(response.status, 429, "unexpected rate-limit status")
   assertEquals(response.headers.get("retry-after"), "30", "missing retry timing")
+  assertEquals(
+    (body.error as Record<string, unknown>).requestIdDisposition,
+    "NEW_REQUEST",
+    "finalized upstream rate limit did not complete the request id",
+  )
 })
 
 Deno.test("rejects invalid AI responses", async () => {
@@ -646,6 +734,11 @@ Deno.test("rejects invalid AI responses", async () => {
     (body.error as Record<string, unknown>).code,
     "INVALID_AI_RESPONSE",
     "unexpected invalid-response code",
+  )
+  assertEquals(
+    (body.error as Record<string, unknown>).requestIdDisposition,
+    "NEW_REQUEST",
+    "finalized invalid response did not complete the request id",
   )
 })
 

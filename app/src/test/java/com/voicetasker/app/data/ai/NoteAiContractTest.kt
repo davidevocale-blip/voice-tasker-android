@@ -1,5 +1,10 @@
 package com.voicetasker.app.data.ai
 
+import com.voicetasker.app.domain.ai.NoteAiOperation
+import com.voicetasker.app.domain.ai.NoteAiOperationIntent
+import com.voicetasker.app.domain.ai.NoteAiOperationPayload
+import com.voicetasker.app.domain.ai.NoteAiOperationSession
+import com.voicetasker.app.domain.ai.NoteAiRequestIdDisposition
 import com.voicetasker.app.domain.ai.NoteAiResult
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -7,6 +12,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -98,6 +104,48 @@ class NoteAiContractTest {
     }
 
     @Test
+    fun `retrying the same logical operation reuses its request id`() = runBlocking {
+        val remote = FakeRemote(
+            responses = ArrayDeque(listOf(response(504), response(200, validBody)))
+        )
+        val processor = SupabaseNoteAiProcessor(remote, 1_000)
+        val operation = NoteAiOperation.create(
+            text = "Nota",
+            categoryNames = listOf("Lavoro"),
+            currentDate = "2026-07-22"
+        )
+
+        assertEquals(NoteAiResult.Timeout(), processor.process(operation))
+        assertTrue(processor.process(operation) is NoteAiResult.Success)
+
+        assertEquals(2, remote.requests.size)
+        assertEquals(remote.requests[0].requestId, remote.requests[1].requestId)
+    }
+
+    @Test
+    fun `new logical operations use distinct request ids for the same payload`() = runBlocking {
+        val remote = FakeRemote(
+            responses = ArrayDeque(listOf(response(200, validBody), response(200, validBody)))
+        )
+        val processor = SupabaseNoteAiProcessor(remote, 1_000)
+        val first = NoteAiOperation.create(
+            text = "Nota",
+            categoryNames = listOf("Lavoro"),
+            currentDate = "2026-07-22"
+        )
+        val second = NoteAiOperation.create(
+            text = "Nota",
+            categoryNames = listOf("Lavoro"),
+            currentDate = "2026-07-22"
+        )
+
+        assertTrue(processor.process(first) is NoteAiResult.Success)
+        assertTrue(processor.process(second) is NoteAiResult.Success)
+
+        assertNotEquals(remote.requests[0].requestId, remote.requests[1].requestId)
+    }
+
+    @Test
     fun `second 401 is a session expired result without another retry`() = runBlocking {
         val remote = FakeRemote(
             responses = ArrayDeque(listOf(response(401), response(401)))
@@ -118,8 +166,34 @@ class NoteAiContractTest {
 
         val result = processor.process("Nota", emptyList(), "2026-07-22")
 
-        assertEquals(NoteAiResult.Timeout, result)
+        assertEquals(NoteAiResult.Timeout(), result)
         assertEquals(1, remote.invokeCount)
+    }
+
+    @Test
+    fun `http timeouts map request id disposition conservatively`() = runBlocking {
+        val cases = listOf(
+            null to null,
+            "RETRY_SAME" to NoteAiRequestIdDisposition.RETRY_SAME,
+            "NEW_REQUEST" to NoteAiRequestIdDisposition.NEW_REQUEST,
+            "FUTURE_VALUE" to null
+        )
+
+        listOf(408, 504).forEach { status ->
+            cases.forEach { (wireDisposition, expectedDisposition) ->
+                val dispositionField = wireDisposition?.let {
+                    ",\"requestIdDisposition\":\"$it\""
+                }.orEmpty()
+                val body =
+                    """{"error":{"code":"UPSTREAM_TIMEOUT"$dispositionField}}"""
+                val processor = processorWith(response(status, body))
+
+                assertEquals(
+                    NoteAiResult.Timeout(expectedDisposition),
+                    processor.process("Nota", emptyList(), "2026-07-22")
+                )
+            }
+        }
     }
 
     @Test
@@ -146,6 +220,100 @@ class NoteAiContractTest {
         assertEquals(1, remote.invokeCount)
         assertEquals(0, remote.refreshCount)
     }
+
+    @Test
+    fun `server errors map request id disposition across 5xx`() = runBlocking {
+        val cases = listOf(
+            "RETRY_SAME" to NoteAiRequestIdDisposition.RETRY_SAME,
+            "NEW_REQUEST" to NoteAiRequestIdDisposition.NEW_REQUEST
+        )
+
+        listOf(500, 502, 503).forEach { status ->
+            cases.forEach { (wireDisposition, expectedDisposition) ->
+                val body =
+                    """{"error":{"code":"SERVICE_UNAVAILABLE","requestIdDisposition":"$wireDisposition"}}"""
+                val processor = processorWith(response(status, body))
+
+                assertEquals(
+                    NoteAiResult.ServerError(status, expectedDisposition),
+                    processor.process("Nota", emptyList(), "2026-07-22")
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `server errors without known disposition map conservatively across 5xx`() = runBlocking {
+        listOf(500, 502, 503).forEach { status ->
+            listOf(
+                """{"error":{"code":"SERVICE_UNAVAILABLE"}}""",
+                """{"error":{"code":"SERVICE_UNAVAILABLE","requestIdDisposition":"FUTURE_VALUE"}}"""
+            ).forEach { body ->
+                val processor = processorWith(response(status, body))
+
+                assertEquals(
+                    NoteAiResult.ServerError(status),
+                    processor.process("Nota", emptyList(), "2026-07-22")
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `recognized application codes on 5xx close the request id when authoritative`() =
+        runBlocking {
+            listOf(
+                500 to "REQUEST_IN_PROGRESS",
+                502 to "RATE_LIMITED",
+                503 to "AUTHENTICATION_INVALID"
+            ).forEach { (status, code) ->
+                val session = NoteAiOperationSession()
+                val intent = NoteAiOperationIntent("Nota", 1L, 1_785_283_200_000L)
+                val payload = NoteAiOperationPayload(listOf("Lavoro"), "2026-07-22")
+                val execution = requireNotNull(session.begin(intent, payload))
+                val processor = processorWith(
+                    response(
+                        status,
+                        """{"error":{"code":"$code","requestIdDisposition":"NEW_REQUEST"}}"""
+                    )
+                )
+
+                val result = processor.process(execution.operation)
+
+                assertEquals(
+                    NoteAiResult.ServerError(
+                        status,
+                        NoteAiRequestIdDisposition.NEW_REQUEST
+                    ),
+                    result
+                )
+                assertTrue(session.complete(execution, result))
+                val next = requireNotNull(session.begin(intent, payload))
+                assertNotEquals(execution.operation.requestId, next.operation.requestId)
+            }
+        }
+
+    @Test
+    fun `recognized application code on 5xx conservatively preserves request id`() =
+        runBlocking {
+            listOf(
+                """{"error":{"code":"REQUEST_IN_PROGRESS"}}""",
+                """{"error":{"code":"REQUEST_IN_PROGRESS","requestIdDisposition":"FUTURE_VALUE"}}"""
+            ).forEach { body ->
+                val session = NoteAiOperationSession()
+                val intent = NoteAiOperationIntent("Nota", 1L, 1_785_283_200_000L)
+                val payload = NoteAiOperationPayload(listOf("Lavoro"), "2026-07-22")
+                val execution = requireNotNull(session.begin(intent, payload))
+                val processor = processorWith(response(503, body))
+
+                val result = processor.process(execution.operation)
+
+                assertEquals(NoteAiResult.ServerError(503), result)
+                assertTrue(session.complete(execution, result))
+                val retry = requireNotNull(session.begin(intent, payload))
+                assertEquals(execution.operation.requestId, retry.operation.requestId)
+            }
+        }
 
     @Test
     fun `application errors map distinctly without retries`() = runBlocking {

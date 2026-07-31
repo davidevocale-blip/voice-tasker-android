@@ -166,11 +166,14 @@ function jsonResponse(
   })
 }
 
+type RequestIdDisposition = "RETRY_SAME" | "NEW_REQUEST"
+
 function errorResponse(
   status: number,
   code: string,
   retryAfterSeconds?: number,
   additionalHeaders: Record<string, string> = {},
+  requestIdDisposition?: RequestIdDisposition,
 ): Response {
   const retry = retryAfterSeconds !== undefined && retryAfterSeconds > 0
     ? Math.ceil(retryAfterSeconds)
@@ -180,6 +183,7 @@ function errorResponse(
       error: {
         code,
         ...(retry === undefined ? {} : { retryAfterSeconds: retry }),
+        ...(requestIdDisposition === undefined ? {} : { requestIdDisposition }),
       },
     },
     status,
@@ -467,6 +471,8 @@ function reservationResponse(
         reservation.responseStatus,
         reservation.errorCode,
         reservation.retryAfterSeconds,
+        {},
+        "NEW_REQUEST",
       )
     case "MONTHLY_QUOTA_EXHAUSTED":
     case "DAILY_QUOTA_EXHAUSTED":
@@ -524,7 +530,7 @@ export function createHandler(
     try {
       userId = await dependencies.authenticateUser(request)
     } catch {
-      return errorResponse(503, "SERVICE_UNAVAILABLE")
+      return errorResponse(503, "SERVICE_UNAVAILABLE", undefined, {}, "RETRY_SAME")
     }
     if (userId === null) {
       return errorResponse(401, "AUTHENTICATION_INVALID")
@@ -547,7 +553,7 @@ export function createHandler(
     try {
       dependencies.validateAiConfiguration()
     } catch {
-      return errorResponse(503, "SERVICE_UNAVAILABLE")
+      return errorResponse(503, "SERVICE_UNAVAILABLE", undefined, {}, "RETRY_SAME")
     }
 
     let reservation: ReservationDecision
@@ -559,7 +565,7 @@ export function createHandler(
         validatedRequest.text.length,
       )
     } catch {
-      return errorResponse(503, "SERVICE_UNAVAILABLE")
+      return errorResponse(503, "SERVICE_UNAVAILABLE", undefined, {}, "RETRY_SAME")
     }
     if (reservation.decision !== "RESERVED") {
       try {
@@ -568,7 +574,11 @@ export function createHandler(
           validatedRequest.categoryNames,
         )
       } catch {
-        return errorResponse(503, "SERVICE_UNAVAILABLE")
+        const disposition = reservation.decision === "REPLAY_SUCCESS" ||
+            reservation.decision === "REPLAY_FAILURE"
+          ? "NEW_REQUEST"
+          : "RETRY_SAME"
+        return errorResponse(503, "SERVICE_UNAVAILABLE", undefined, {}, disposition)
       }
     }
 
@@ -605,7 +615,13 @@ export function createHandler(
       }
     } catch (error) {
       if (error instanceof RequestTimeoutError || controller.signal.aborted) {
-        response = errorResponse(504, "UPSTREAM_TIMEOUT")
+        response = errorResponse(
+          504,
+          "UPSTREAM_TIMEOUT",
+          undefined,
+          {},
+          "NEW_REQUEST",
+        )
         finalization = {
           status: "upstream_timeout",
           responseStatus: 504,
@@ -615,7 +631,13 @@ export function createHandler(
           usageMetadata,
         }
       } else if (error instanceof ServiceConfigurationError) {
-        response = errorResponse(503, "SERVICE_UNAVAILABLE")
+        response = errorResponse(
+          503,
+          "SERVICE_UNAVAILABLE",
+          undefined,
+          {},
+          "NEW_REQUEST",
+        )
         finalization = {
           status: "service_unavailable",
           responseStatus: 503,
@@ -629,6 +651,8 @@ export function createHandler(
           429,
           "UPSTREAM_RATE_LIMITED",
           error.retryAfterSeconds,
+          {},
+          "NEW_REQUEST",
         )
         finalization = {
           status: "upstream_rate_limited",
@@ -639,7 +663,13 @@ export function createHandler(
           usageMetadata,
         }
       } else if (error instanceof InvalidAiResponseError) {
-        response = errorResponse(502, "INVALID_AI_RESPONSE")
+        response = errorResponse(
+          502,
+          "INVALID_AI_RESPONSE",
+          undefined,
+          {},
+          "NEW_REQUEST",
+        )
         finalization = {
           status: "invalid_ai_response",
           responseStatus: 502,
@@ -649,7 +679,13 @@ export function createHandler(
           usageMetadata,
         }
       } else {
-        response = errorResponse(502, "UPSTREAM_ERROR")
+        response = errorResponse(
+          502,
+          "UPSTREAM_ERROR",
+          undefined,
+          {},
+          "NEW_REQUEST",
+        )
         finalization = {
           status: "upstream_error",
           responseStatus: 502,
@@ -672,7 +708,7 @@ export function createHandler(
         ...finalization,
       })
     } catch {
-      return errorResponse(503, "SERVICE_UNAVAILABLE")
+      return errorResponse(503, "SERVICE_UNAVAILABLE", undefined, {}, "RETRY_SAME")
     }
     return response
   }

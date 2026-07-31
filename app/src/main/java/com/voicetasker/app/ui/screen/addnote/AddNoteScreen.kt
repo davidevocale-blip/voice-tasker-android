@@ -24,6 +24,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.voicetasker.app.R
 import com.voicetasker.app.domain.ai.NoteAiProcessor
+import com.voicetasker.app.domain.ai.NoteAiOperationIntent
+import com.voicetasker.app.domain.ai.NoteAiOperationPayload
+import com.voicetasker.app.domain.ai.NoteAiOperationSession
 import com.voicetasker.app.domain.ai.NoteAiResult
 import com.voicetasker.app.domain.ai.toFallback
 import com.voicetasker.app.domain.model.Category
@@ -85,20 +88,42 @@ class AddNoteViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AddNoteUiState())
     val uiState: StateFlow<AddNoteUiState> = _uiState.asStateFlow()
+    private val aiOperationSession = NoteAiOperationSession()
 
     init {
         viewModelScope.launch {
             categoryRepository.getAllCategories().collect { cats ->
-                _uiState.update { it.copy(categories = cats, selectedCategoryId = it.selectedCategoryId ?: cats.firstOrNull()?.id) }
+                val previousSelectedCategoryId = _uiState.value.selectedCategoryId
+                val selectedCategoryId =
+                    previousSelectedCategoryId ?: cats.firstOrNull()?.id
+                aiOperationSession.invalidateIfSelectedCategoryChanged(
+                    previousSelectedCategoryId,
+                    selectedCategoryId
+                )
+                _uiState.update {
+                    it.copy(
+                        categories = cats,
+                        selectedCategoryId = it.selectedCategoryId ?: cats.firstOrNull()?.id
+                    )
+                }
             }
         }
     }
 
     fun onTitleChanged(t: String) { _uiState.update { it.copy(title = t) } }
-    fun onContentChanged(t: String) { _uiState.update { it.copy(content = t) } }
-    fun onCategorySelected(id: Long) { _uiState.update { it.copy(selectedCategoryId = id) } }
+    fun onContentChanged(t: String) {
+        if (_uiState.value.content != t) aiOperationSession.invalidate()
+        _uiState.update { it.copy(content = t) }
+    }
+    fun onCategorySelected(id: Long) {
+        if (_uiState.value.selectedCategoryId != id) aiOperationSession.invalidate()
+        _uiState.update { it.copy(selectedCategoryId = id) }
+    }
     fun onDateChanged(d: Long) {
         ReminderDateNormalizer.fromDatePickerMillis(d)?.let { canonicalDate ->
+            if (_uiState.value.scheduledDate != canonicalDate) {
+                aiOperationSession.invalidate()
+            }
             _uiState.update {
                 it.copy(scheduledDate = canonicalDate, isDateSelected = true)
             }
@@ -115,22 +140,35 @@ class AddNoteViewModel @Inject constructor(
     }
 
     fun requestAiSuggestions() {
-        val content = _uiState.value.content
-        if (content.length < 15 || _uiState.value.isAiProcessing) return
-        viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isAiProcessing = true,
-                    aiErrorRes = null,
-                    authenticationRequired = false
-                )
-            }
-            val catNames = _uiState.value.categories.map { it.name }
-            val result = noteAiProcessor.process(
+        val state = _uiState.value
+        val content = state.content
+        if (content.length < 15 || state.isAiProcessing) return
+
+        val execution = aiOperationSession.begin(
+            NoteAiOperationIntent(
                 text = content,
-                categoryNames = catNames,
+                selectedCategoryId = state.selectedCategoryId,
+                scheduledDate = state.scheduledDate
+            ),
+            NoteAiOperationPayload(
+                categoryNames = state.categories.map { it.name },
                 currentDate = LocalDate.now().toString()
             )
+        ) ?: return
+        _uiState.update {
+            it.copy(
+                isAiProcessing = true,
+                aiErrorRes = null,
+                authenticationRequired = false
+            )
+        }
+
+        viewModelScope.launch {
+            val result = noteAiProcessor.process(execution.operation)
+            if (!aiOperationSession.complete(execution, result)) {
+                _uiState.update { it.copy(isAiProcessing = false) }
+                return@launch
+            }
             val fallback = result.toFallback(content)
 
             _uiState.update { s ->

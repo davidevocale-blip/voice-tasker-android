@@ -19,7 +19,8 @@ internal data class ProcessNoteAiErrorResponse(
 @Serializable
 internal data class ProcessNoteAiError(
     val code: String,
-    val retryAfterSeconds: Long? = null
+    val retryAfterSeconds: Long? = null,
+    val requestIdDisposition: String? = null
 )
 
 @Serializable

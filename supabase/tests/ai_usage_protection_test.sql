@@ -83,7 +83,7 @@ insert into private.ai_usage_state (
 values (
   '00000000-0000-0000-0000-000000000002',
   date_trunc('month', now() at time zone 'UTC')::date,
-  200,
+  199,
   (now() at time zone 'UTC')::date,
   1
 );

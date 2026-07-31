@@ -11,6 +11,10 @@ import com.voicetasker.app.domain.model.Note
 import com.voicetasker.app.domain.model.ReminderType
 import com.voicetasker.app.domain.reminder.ReminderDateNormalizer
 import com.voicetasker.app.domain.ai.NoteAiProcessor
+import com.voicetasker.app.domain.ai.NoteAiOperationExecution
+import com.voicetasker.app.domain.ai.NoteAiOperationIntent
+import com.voicetasker.app.domain.ai.NoteAiOperationPayload
+import com.voicetasker.app.domain.ai.NoteAiOperationSession
 import com.voicetasker.app.domain.ai.NoteAiResult
 import com.voicetasker.app.domain.ai.toFallback
 import com.voicetasker.app.domain.repository.CategoryRepository
@@ -80,6 +84,7 @@ class RecordViewModel @Inject constructor(
     private var timerJob: Job? = null
     private var rmsJob: Job? = null
     private var stateCollectorJob: Job? = null
+    private val aiOperationSession = NoteAiOperationSession()
 
     init {
         viewModelScope.launch {
@@ -100,6 +105,7 @@ class RecordViewModel @Inject constructor(
 
     fun startRecording() {
         Log.d(TAG, "startRecording")
+        aiOperationSession.invalidate()
         _uiState.update {
             it.copy(
                 isRecording = true, amplitudes = emptyList(), recordingDurationMs = 0,
@@ -118,10 +124,10 @@ class RecordViewModel @Inject constructor(
             speechTranscriber.state.collect { state ->
                 when (state) {
                     is SpeechTranscriberImpl.TranscriptionState.Result -> {
-                        _uiState.update { it.copy(transcription = state.text) }
+                        onTranscriptionChanged(state.text)
                     }
                     is SpeechTranscriberImpl.TranscriptionState.PartialResult -> {
-                        _uiState.update { it.copy(transcription = state.text) }
+                        onTranscriptionChanged(state.text)
                     }
                     is SpeechTranscriberImpl.TranscriptionState.SilenceTimeout -> {
                         Log.d(TAG, "SilenceTimeout received, isRecording=${_uiState.value.isRecording}")
@@ -176,7 +182,7 @@ class RecordViewModel @Inject constructor(
         val transcription = _uiState.value.transcription
         if (transcription.isNotBlank()) {
             viewModelScope.launch {
-                processWithAi(transcription)
+                processWithAi(transcription, deferIfBusy = true)
             }
         }
     }
@@ -187,8 +193,30 @@ class RecordViewModel @Inject constructor(
         viewModelScope.launch { processWithAi(transcription) }
     }
 
-    private suspend fun processWithAi(rawTranscription: String) {
-        if (_uiState.value.isAiProcessing) return
+    private suspend fun processWithAi(
+        rawTranscription: String,
+        deferIfBusy: Boolean = false
+    ) {
+        val state = _uiState.value
+        val intent = aiIntent(state, rawTranscription)
+        val payload = aiPayload(state)
+        val execution = aiOperationSession.begin(
+            intent = intent,
+            payload = payload
+        )
+        if (execution == null) {
+            if (deferIfBusy) {
+                aiOperationSession.deferLatest(intent, payload)
+                _uiState.update {
+                    it.copy(
+                        isAiProcessing = true,
+                        errorMessage = null,
+                        authenticationRequired = false
+                    )
+                }
+            }
+            return
+        }
         _uiState.update {
             it.copy(
                 isAiProcessing = true,
@@ -196,14 +224,28 @@ class RecordViewModel @Inject constructor(
                 authenticationRequired = false
             )
         }
+        processAiExecution(execution, rawTranscription)
+    }
 
-        val categoryNames = _uiState.value.categories.map { it.name }
-        val result = noteAiProcessor.process(
-            text = rawTranscription,
-            categoryNames = categoryNames,
-            currentDate = LocalDate.now().toString()
-        )
-        val fallback = result.toFallback(rawTranscription)
+    private suspend fun processAiExecution(
+        execution: NoteAiOperationExecution,
+        originalText: String
+    ) {
+        val result = noteAiProcessor.process(execution.operation)
+        val completion = aiOperationSession.completeAndBeginDeferred(execution, result)
+        if (!completion.isCurrent) {
+            val deferredExecution = completion.deferredExecution
+            if (deferredExecution != null) {
+                processAiExecution(
+                    execution = deferredExecution,
+                    originalText = deferredExecution.operation.text
+                )
+            } else {
+                _uiState.update { it.copy(isAiProcessing = false) }
+            }
+            return
+        }
+        val fallback = result.toFallback(originalText)
 
         _uiState.update { state ->
             if (result !is NoteAiResult.Success) {
@@ -217,7 +259,7 @@ class RecordViewModel @Inject constructor(
             val metadata = result.metadata
             var updated = state.copy(
                 title = metadata.title.ifBlank { state.title },
-                transcription = fallback.text.ifBlank { rawTranscription },
+                transcription = fallback.text.ifBlank { originalText },
                 aiTitleSuggestion = metadata.title.takeIf { it.isNotBlank() },
                 location = metadata.location ?: "",
                 noteTime = metadata.time ?: "",
@@ -244,14 +286,61 @@ class RecordViewModel @Inject constructor(
         }
     }
 
+    private fun aiIntent(
+        state: RecordUiState,
+        text: String = state.transcription
+    ) = NoteAiOperationIntent(
+        text = text,
+        selectedCategoryId = state.selectedCategoryId,
+        scheduledDate = state.scheduledDate
+    )
+
+    private fun aiPayload(state: RecordUiState) = NoteAiOperationPayload(
+        categoryNames = state.categories.map { it.name },
+        currentDate = LocalDate.now().toString()
+    )
+
+    private fun updateDeferredAiOperationIfPresent() {
+        val state = _uiState.value
+        aiOperationSession.updateDeferredIfPresent(
+            intent = aiIntent(state),
+            payload = aiPayload(state)
+        )
+    }
+
+    private fun deferLatestAiOperationIfActive() {
+        val state = _uiState.value
+        aiOperationSession.deferLatestIfActive(
+            intent = aiIntent(state),
+            payload = aiPayload(state)
+        )
+    }
+
     fun onTitleChanged(t: String) { _uiState.update { it.copy(title = t) } }
-    fun onTranscriptionChanged(t: String) { _uiState.update { it.copy(transcription = t) } }
-    fun onCategorySelected(id: Long) { _uiState.update { it.copy(selectedCategoryId = id) } }
+    fun onTranscriptionChanged(t: String) {
+        val changed = _uiState.value.transcription != t
+        if (changed) {
+            aiOperationSession.invalidate(clearDeferred = false)
+        }
+        _uiState.update { it.copy(transcription = t) }
+        if (changed) deferLatestAiOperationIfActive()
+    }
+    fun onCategorySelected(id: Long) {
+        if (_uiState.value.selectedCategoryId != id) {
+            aiOperationSession.invalidate(clearDeferred = false)
+        }
+        _uiState.update { it.copy(selectedCategoryId = id) }
+        updateDeferredAiOperationIfPresent()
+    }
     fun onScheduledDateChanged(d: Long) {
         ReminderDateNormalizer.fromDatePickerMillis(d)?.let { canonicalDate ->
+            if (_uiState.value.scheduledDate != canonicalDate) {
+                aiOperationSession.invalidate(clearDeferred = false)
+            }
             _uiState.update {
                 it.copy(scheduledDate = canonicalDate, isDateSelected = true)
             }
+            updateDeferredAiOperationIfPresent()
         }
     }
     fun onLocationChanged(l: String) { _uiState.update { it.copy(location = l) } }

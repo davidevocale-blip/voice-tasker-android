@@ -13,7 +13,7 @@ class NoteAiFallbackPolicyTest {
         val failures = listOf(
             NoteAiResult.AuthenticationRequired,
             NoteAiResult.SessionExpired,
-            NoteAiResult.Timeout,
+            NoteAiResult.Timeout(),
             NoteAiResult.TextTooLong,
             NoteAiResult.MonthlyQuotaExhausted(retryAfterSeconds = 60),
             NoteAiResult.DailyQuotaExhausted(retryAfterSeconds = 60),
