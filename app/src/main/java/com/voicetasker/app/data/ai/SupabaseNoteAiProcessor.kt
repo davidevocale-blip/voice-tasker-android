@@ -157,11 +157,18 @@ class SupabaseNoteAiProcessor internal constructor(
                 HttpStatusCode.GatewayTimeout.value -> NoteAiResult.Timeout(
                     applicationError?.requestIdDisposition.toDomainDisposition()
                 )
-                in 500..599 -> NoteAiResult.ServerError(
-                    statusCode = response.statusCode,
-                    requestIdDisposition =
-                        applicationError?.requestIdDisposition.toDomainDisposition()
-                )
+                in 500..599 ->
+                    if (applicationError?.code == "INVALID_AI_RESPONSE") {
+                        NoteAiResult.InvalidResponse(
+                            applicationError.requestIdDisposition.toDomainDisposition()
+                        )
+                    } else {
+                        NoteAiResult.ServerError(
+                            statusCode = response.statusCode,
+                            requestIdDisposition =
+                                applicationError?.requestIdDisposition.toDomainDisposition()
+                        )
+                    }
                 else -> when (applicationError?.code) {
                     "TEXT_TOO_LONG" ->
                         NoteAiResult.TextTooLong
@@ -187,7 +194,9 @@ class SupabaseNoteAiProcessor internal constructor(
                             requestIdDisposition =
                                 applicationError?.requestIdDisposition.toDomainDisposition()
                         )
-                        else -> NoteAiResult.InvalidResponse
+                        else -> NoteAiResult.InvalidResponse(
+                            NoteAiRequestIdDisposition.NEW_REQUEST
+                        )
                     }
                 }
             }
@@ -216,12 +225,20 @@ class SupabaseNoteAiProcessor internal constructor(
             val response = try {
                 json.decodeFromString<ProcessNoteAiResponse>(body)
             } catch (error: SerializationException) {
-                return NoteAiResult.InvalidResponse
+                return NoteAiResult.InvalidResponse(
+                    NoteAiRequestIdDisposition.NEW_REQUEST
+                )
             } catch (error: IllegalArgumentException) {
-                return NoteAiResult.InvalidResponse
+                return NoteAiResult.InvalidResponse(
+                    NoteAiRequestIdDisposition.NEW_REQUEST
+                )
             }
 
-            if (!isValid(response, categoryNames)) return NoteAiResult.InvalidResponse
+            if (!isValid(response, categoryNames)) {
+                return NoteAiResult.InvalidResponse(
+                    NoteAiRequestIdDisposition.NEW_REQUEST
+                )
+            }
             return NoteAiResult.Success(response.toDomain())
         }
 

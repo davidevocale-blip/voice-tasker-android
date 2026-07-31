@@ -31,7 +31,9 @@ sealed interface NoteAiResult {
     data class RequestInProgress(val retryAfterSeconds: Long?) : NoteAiResult
     data object IdempotencyConflict : NoteAiResult
     data object NetworkError : NoteAiResult
-    data object InvalidResponse : NoteAiResult
+    data class InvalidResponse(
+        val requestIdDisposition: NoteAiRequestIdDisposition?
+    ) : NoteAiResult
     data class ServerError(
         val statusCode: Int?,
         val requestIdDisposition: NoteAiRequestIdDisposition? = null
@@ -219,8 +221,9 @@ fun NoteAiResult.keepsAiOperationForRetry(): Boolean = when (this) {
     is NoteAiResult.Success,
     NoteAiResult.TextTooLong,
     is NoteAiResult.RateLimited,
-    NoteAiResult.IdempotencyConflict,
-    NoteAiResult.InvalidResponse -> false
+    NoteAiResult.IdempotencyConflict -> false
+    is NoteAiResult.InvalidResponse ->
+        requestIdDisposition != NoteAiRequestIdDisposition.NEW_REQUEST
     is NoteAiResult.Timeout ->
         requestIdDisposition != NoteAiRequestIdDisposition.NEW_REQUEST
     is NoteAiResult.ServerError ->
@@ -322,7 +325,7 @@ fun NoteAiResult.toFallback(originalText: String): NoteAiFallback = when (this) 
         failureReason = NoteAiFailureReason.NETWORK_ERROR,
         authenticationRequired = false
     )
-    NoteAiResult.InvalidResponse -> NoteAiFallback(
+    is NoteAiResult.InvalidResponse -> NoteAiFallback(
         text = originalText,
         canSaveLocally = true,
         failureReason = NoteAiFailureReason.INVALID_RESPONSE,

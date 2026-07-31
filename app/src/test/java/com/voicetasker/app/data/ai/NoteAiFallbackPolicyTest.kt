@@ -1,5 +1,7 @@
 package com.voicetasker.app.data.ai
 
+import com.voicetasker.app.domain.ai.NoteAiFailureReason
+import com.voicetasker.app.domain.ai.NoteAiRequestIdDisposition
 import com.voicetasker.app.domain.ai.NoteAiResult
 import com.voicetasker.app.domain.ai.toFallback
 import org.junit.Assert.assertEquals
@@ -22,7 +24,7 @@ class NoteAiFallbackPolicyTest {
             NoteAiResult.RequestInProgress(retryAfterSeconds = 30),
             NoteAiResult.IdempotencyConflict,
             NoteAiResult.NetworkError,
-            NoteAiResult.InvalidResponse,
+            NoteAiResult.InvalidResponse(NoteAiRequestIdDisposition.NEW_REQUEST),
             NoteAiResult.ServerError(statusCode = 503)
         )
 
@@ -31,6 +33,19 @@ class NoteAiFallbackPolicyTest {
             assertEquals(originalText, fallback.text)
             assertTrue(fallback.canSaveLocally)
             assertTrue(fallback.failureReason != null)
+        }
+    }
+
+    @Test
+    fun `invalid response always uses invalid response fallback semantics`() {
+        listOf(
+            NoteAiRequestIdDisposition.NEW_REQUEST,
+            NoteAiRequestIdDisposition.RETRY_SAME,
+            null
+        ).forEach { disposition ->
+            val fallback = NoteAiResult.InvalidResponse(disposition).toFallback("Nota")
+
+            assertEquals(NoteAiFailureReason.INVALID_RESPONSE, fallback.failureReason)
         }
     }
 

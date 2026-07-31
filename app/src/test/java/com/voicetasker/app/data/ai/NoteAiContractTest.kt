@@ -316,6 +316,47 @@ class NoteAiContractTest {
         }
 
     @Test
+    fun `invalid AI response preserves semantics and request id disposition`() =
+        runBlocking {
+            listOf(
+                Triple(
+                    "NEW_REQUEST",
+                    NoteAiRequestIdDisposition.NEW_REQUEST,
+                    false
+                ),
+                Triple(
+                    "RETRY_SAME",
+                    NoteAiRequestIdDisposition.RETRY_SAME,
+                    true
+                ),
+                Triple(null, null, true),
+                Triple("FUTURE_VALUE", null, true)
+            ).forEach { (wireDisposition, expectedDisposition, keepsRequestId) ->
+                val dispositionField = wireDisposition?.let {
+                    ",\"requestIdDisposition\":\"$it\""
+                }.orEmpty()
+                val body =
+                    """{"error":{"code":"INVALID_AI_RESPONSE"$dispositionField}}"""
+                val session = NoteAiOperationSession()
+                val intent = NoteAiOperationIntent("Nota", 1L, 1_785_283_200_000L)
+                val payload = NoteAiOperationPayload(listOf("Lavoro"), "2026-07-22")
+                val execution = requireNotNull(session.begin(intent, payload))
+                val processor = processorWith(response(502, body))
+
+                val result = processor.process(execution.operation)
+
+                assertEquals(NoteAiResult.InvalidResponse(expectedDisposition), result)
+                assertTrue(session.complete(execution, result))
+                val next = requireNotNull(session.begin(intent, payload))
+                if (keepsRequestId) {
+                    assertEquals(execution.operation.requestId, next.operation.requestId)
+                } else {
+                    assertNotEquals(execution.operation.requestId, next.operation.requestId)
+                }
+            }
+        }
+
+    @Test
     fun `application errors map distinctly without retries`() = runBlocking {
         val cases = listOf(
             Triple(400, "TEXT_TOO_LONG", NoteAiResult.TextTooLong),
@@ -371,7 +412,10 @@ class NoteAiContractTest {
 
         val result = processor.process("Nota", emptyList(), "2026-07-22")
 
-        assertEquals(NoteAiResult.InvalidResponse, result)
+        assertEquals(
+            NoteAiResult.InvalidResponse(NoteAiRequestIdDisposition.NEW_REQUEST),
+            result
+        )
     }
 
     private fun processorWith(response: NoteAiRemoteResponse): SupabaseNoteAiProcessor =

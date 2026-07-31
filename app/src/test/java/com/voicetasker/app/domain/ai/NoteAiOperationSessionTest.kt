@@ -278,6 +278,31 @@ class NoteAiOperationSessionTest {
     }
 
     @Test
+    fun `invalid response disposition controls request id lifecycle`() {
+        listOf(
+            NoteAiRequestIdDisposition.NEW_REQUEST to false,
+            NoteAiRequestIdDisposition.RETRY_SAME to true,
+            null to true
+        ).forEach { (disposition, keepsRequestId) ->
+            val session = NoteAiOperationSession()
+            val first = begin(session)
+
+            assertTrue(
+                session.complete(
+                    first,
+                    NoteAiResult.InvalidResponse(disposition)
+                )
+            )
+            val next = begin(session)
+            if (keepsRequestId) {
+                assertEquals(first.operation.requestId, next.operation.requestId)
+            } else {
+                assertNotEquals(first.operation.requestId, next.operation.requestId)
+            }
+        }
+    }
+
+    @Test
     fun `finalized service unavailable completes the current request id`() {
         val session = NoteAiOperationSession()
         val first = begin(session)
